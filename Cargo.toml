@@ -3,6 +3,14 @@ name = "nju-schedule-ics"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+aes = "0.8.3"
+base64 = "0.21.2"
+cbc = { version = "0.1.2", features = ["alloc", "std"] }
+reqwest = { version = "0.11.18", features = ["cookie_store", "cookies"] }
+skyscraper = "0.4.0"
+tokio = { version = "1.29.1", features = ["macros"] }
+
+[dev-dependencies]
+image = "0.24.6"
+viuer = "0.6.2"
