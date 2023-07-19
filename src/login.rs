@@ -1,18 +1,20 @@
 use aes::{
-    cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyInit, KeyIvInit},
+    cipher::{block_padding::Pkcs7, BlockEncryptMut, KeyIvInit},
     Aes128,
 };
 use base64::{engine::general_purpose, Engine as _};
 use cbc;
 use core::ops::Deref;
-use std::{collections::HashMap, error::Error, future::Future, hash::Hash};
-use tl::{self, HTMLTag, VDom, VDomGuard};
+use std::{collections::HashMap, error::Error, future::Future};
+use tl::{self, VDom};
 
 fn encrypt(password: &str, salt: &str) -> String {
     type Aes128CbcEnc = cbc::Encryptor<Aes128>;
-    let cipher = Aes128CbcEnc::new(salt.as_bytes().into(), &[1u8; 16].into());
+    let iv = "a".repeat(16).into_bytes();
+    let cipher = Aes128CbcEnc::new(salt.as_bytes().into(), iv.as_slice().into());
 
-    let ct = cipher.encrypt_padded_vec_mut::<Pkcs7>(password.as_bytes());
+    let ct =
+        cipher.encrypt_padded_vec_mut::<Pkcs7>(("a".repeat(64) + password).into_bytes().as_slice());
     let b64 = general_purpose::STANDARD.encode(ct);
 
     b64
@@ -90,10 +92,11 @@ impl LoginCredential {
         let client = reqwest::ClientBuilder::new()
             .default_headers(headers)
             .cookie_store(true)
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .unwrap();
 
-        let get_cookie_response = client
+        let _ = client
             .get("https://authserver.nju.edu.cn/authserver/login")
             .send()
             .await?;
@@ -108,7 +111,7 @@ impl LoginCredential {
 
         let context = extract_context(login_page.get_ref()).unwrap();
 
-        let need_captcha_response=client
+        let _=client
             .get(format!("https://authserver.nju.edu.cn/authserver/needCaptcha.html?username={}&pwdEncrypt2=pwdEncryptSalt",username))
             .send().await?;
         let captcha_content = client
@@ -136,59 +139,39 @@ impl LoginCredential {
 
         for cookie in login_response.cookies() {
             if cookie.name() == "CASTGC" {
-                println!("Castgc is {}", cookie.value());
                 return Ok(LoginCredential {
                     castgc: cookie.value().to_string(),
                 });
             }
         }
 
-        Err("CASTGC Not found".into())
+        let response_text = login_response.text().await?;
+        let resp = unsafe { tl::parse_owned(response_text, tl::ParserOptions::default()) }?;
+        let doc = resp.get_ref();
+        let reason = doc.get_element_by_id("msg1");
+        let Some(reason)=reason else{
+            return Err("No CASTGC, cannot load reason".into());
+        };
+        let Some(reason)=reason.get(doc.parser()) else{
+            return Err("No CASTGC, cannot load reason".into());
+        };
+
+        let reason = reason.inner_text(doc.parser()).into_owned();
+        Err(reason.into())
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use image::{io::Reader, *};
-    use std::{io, io::Cursor};
-    use tokio;
-    use viuer::{print, Config};
 
-    #[tokio::test]
-    async fn login_works() {
-        println!("test login begin");
-        let l = LoginCredential::new("test_account", "test_password", |buf| async {
-            let image = Reader::new(Cursor::new(buf)).with_guessed_format().unwrap();
-            let img = image.decode().unwrap();
+    #[test]
+    fn encrypt_works() {
+        let password = "aaaaaa";
+        let salt = "xHbfAO7d6lYwkFCH";
 
-            print(
-                &img,
-                &Config {
-                    width: None,
-                    height: None,
-                    x: 0,
-                    y: 0,
-                    use_kitty: false,
-                    use_iterm: false,
-                    ..Default::default()
-                },
-            )
-            .unwrap();
+        let encrypted = encrypt(password, salt);
 
-            let mut captcha = String::new();
-            io::stdin().read_line(&mut captcha).unwrap();
-
-            captcha
-        })
-        .await;
-
-        println!("Login done running");
-        let Ok(l)=l else{
-            let l=l.unwrap_err();
-            panic!("{}",format!("Result is err: {:#?}",l));
-        };
-
-        assert_ne!(l.castgc, "");
+        assert_eq!(encrypted,"HTUWr2j27SNWdK0efirBxHG6INtWi4xQYg3hCmpCmkMblaFxK9SlECq73/Heen5yQHQPOOYofQNwXhH1iMtT6P4RxqOw+Ko0yd7GcHJmv94=".to_string());
     }
 }
