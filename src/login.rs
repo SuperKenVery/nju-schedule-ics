@@ -5,8 +5,8 @@ use aes::{
 use base64::{engine::general_purpose, Engine as _};
 use cbc;
 use core::ops::Deref;
-use skyscraper::{html, xpath};
 use std::{collections::HashMap, error::Error, future::Future, hash::Hash};
+use tl::{self, HTMLTag, VDom, VDomGuard};
 
 fn encrypt(password: &str, salt: &str) -> String {
     type Aes128CbcEnc = cbc::Encryptor<Aes128>;
@@ -18,55 +18,54 @@ fn encrypt(password: &str, salt: &str) -> String {
     b64
 }
 
+fn extract_context(document: &VDom) -> Option<HashMap<String, String>> {
+    let mut context = HashMap::new();
+
+    let parser = document.parser();
+
+    let form = document.get_element_by_id("casLoginForm")?.get(parser)?;
+    let children = form.children()?.all(parser);
+
+    for child in children {
+        let Some(tag)=child.as_tag() else{
+            continue;
+        };
+
+        if tag.name() != "input" {
+            continue;
+        }
+
+        let attr = tag.attributes();
+
+        let Some(Some(tag_type))=attr.get("type") else {
+            continue;
+        };
+
+        if tag_type.as_utf8_str() != "hidden" {
+            continue;
+        }
+
+        if let Some(Some(name)) = attr.get("name") {
+            let value = attr.get("value")??;
+            context.insert(
+                name.as_utf8_str().into_owned(),
+                value.as_utf8_str().into_owned(),
+            );
+        } else if let Some(Some(id)) = attr.get("id") {
+            let value = attr.get("value")??;
+            context.insert(
+                id.as_utf8_str().into_owned(),
+                value.as_utf8_str().into_owned(),
+            );
+        }
+    }
+
+    Some(context)
+}
+
 #[derive(Debug)]
 struct LoginCredential {
     castgc: String,
-}
-
-trait GetInfoExt {
-    fn get_value(&self, selector: &str) -> Result<String, Box<dyn Error>>;
-}
-
-impl GetInfoExt for html::HtmlDocument {
-    fn get_value(&self, selector: &str) -> Result<String, Box<dyn Error>> {
-        let form_selector = xpath::parse("//*[@id=\"casLoginForm\"]").unwrap();
-        let form = form_selector.apply(self)?[0];
-        println!("Form is {:#?}", form);
-
-        let xpath_expr = xpath::parse(selector)?;
-        let nodes = xpath_expr.apply_to_node(self, form)?;
-
-        if nodes.len() != 1 {
-            println!(
-                "{}",
-                format!(
-                    "When matching {}, found {}!=1 elements, {:#?}",
-                    selector,
-                    nodes.len(),
-                    nodes
-                )
-            );
-            for node in &nodes {
-                let a = HashMap::new();
-                let attrs = node.get_attributes(self).unwrap_or(&a);
-                let text = node.get_all_text(self).unwrap_or("".to_string());
-
-                println!("Node text={:#?} \n attrs={:#?}", text, attrs);
-            }
-            return Err(format!("Found {}!=1 elements, {:#?}", nodes.len(), nodes).into());
-        }
-
-        let node = nodes[0];
-        let Some(attrs)=node.get_attributes(self) else{
-            return Err("Cannot get attributes".into());
-        };
-
-        let Some(val)=attrs.get("value") else{
-            return Err("No `value` attr".into());
-        };
-
-        Ok(val.to_owned())
-    }
 }
 
 impl LoginCredential {
@@ -94,38 +93,20 @@ impl LoginCredential {
             .build()
             .unwrap();
 
-        println!("get cookie...");
         let get_cookie_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
             .send()
             .await?;
 
-        println!("login page...");
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
             .send()
             .await?;
 
         let login_page_raw = login_page_response.text().await?;
-        println!("Page is {}", login_page_raw);
-        let login_page = html::parse(&login_page_raw)?;
+        let login_page = unsafe { tl::parse_owned(login_page_raw, tl::ParserOptions::default())? };
 
-        let lt = login_page
-            .get_value("//*[@id=\"casLoginForm\"]/input[@name=\"lt\"]")
-            .unwrap();
-        let dllt = "mobileLogin".to_string();
-        let execution = login_page
-            .get_value("//*[@id=\"casLoginForm\"]/input[@name=\"execution\"]")
-            .unwrap();
-        let eventid = login_page
-            .get_value("//*[@id=\"casLoginForm\"]/input[@name=\"_eventId\"]")
-            .unwrap();
-        let rmshown = login_page
-            .get_value("//*[@id=\"casLoginForm\"]/input[@name=\"rmShown\"]")
-            .unwrap();
-        let salt = login_page
-            .get_value("//*[@id=\"pwdDefaultEncryptSalt\"]")
-            .unwrap();
+        let context = extract_context(login_page.get_ref()).unwrap();
 
         let need_captcha_response=client
             .get(format!("https://authserver.nju.edu.cn/authserver/needCaptcha.html?username={}&pwdEncrypt2=pwdEncryptSalt",username))
@@ -138,23 +119,18 @@ impl LoginCredential {
             .await?;
         let captcha_content_buf = captcha_content.deref();
 
-        println!("Asking for captcha...");
         let captcha_answer = captcha(captcha_content_buf.to_vec()).await;
 
-        let encrypted_password = encrypt(password, &salt);
+        let encrypted_password = encrypt(password, &context["pwdDefaultEncryptSalt"]);
+
+        let mut form = context.clone();
+        form.insert("username".to_string(), username.to_string());
+        form.insert("password".into(), encrypted_password);
+        form.insert("captchaResponse".into(), captcha_answer);
 
         let login_response = client
             .post("https://authserver.nju.edu.cn/authserver/login")
-            .form(&HashMap::from([
-                ("username", username),
-                ("password", &encrypted_password),
-                ("captchaResponse", &captcha_answer),
-                ("lt", &lt),
-                ("dllt", &dllt),
-                ("execution", &execution),
-                ("_eventId", &eventid),
-                ("rmShown", &rmshown),
-            ]))
+            .form(&form)
             .send()
             .await?;
 
@@ -181,6 +157,7 @@ mod test {
 
     #[tokio::test]
     async fn login_works() {
+        println!("test login begin");
         let l = LoginCredential::new("test_account", "test_password", |buf| async {
             let image = Reader::new(Cursor::new(buf)).with_guessed_format().unwrap();
             let img = image.decode().unwrap();
@@ -192,6 +169,8 @@ mod test {
                     height: None,
                     x: 0,
                     y: 0,
+                    use_kitty: false,
+                    use_iterm: false,
                     ..Default::default()
                 },
             )
@@ -204,6 +183,7 @@ mod test {
         })
         .await;
 
+        println!("Login done running");
         let Ok(l)=l else{
             let l=l.unwrap_err();
             panic!("{}",format!("Result is err: {:#?}",l));

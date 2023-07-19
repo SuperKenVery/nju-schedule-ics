@@ -8,7 +8,8 @@ aes = "0.8.3"
 base64 = "0.21.2"
 cbc = { version = "0.1.2", features = ["alloc", "std"] }
 reqwest = { version = "0.11.18", features = ["cookie_store", "cookies"] }
-skyscraper = "0.4.0"
+show-image = { version = "0.13.1", features = ["image"] }
+tl = "0.7.7"
 tokio = { version = "1.29.1", features = ["macros"] }
 
 [dev-dependencies]
