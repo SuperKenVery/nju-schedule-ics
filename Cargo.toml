@@ -7,6 +7,10 @@ edition = "2021"
 aes = "0.8.3"
 base64 = "0.21.2"
 cbc = { version = "0.1.2", features = ["alloc", "std"] }
+chrono = "0.4.29"
+ics = "0.5.8"
+json = "0.12.4"
 reqwest = { version = "0.11.18", features = ["cookie_store", "cookies"] }
 tl = "0.7.7"
 tokio = { version = "1.29.1", features = ["macros"] }
+uuid = { version = "1.4.1", features = ["v4"] }

@@ -1,0 +1,126 @@
+/* Some utilities to deal with time
+ * Time: packing hour and minute
+ * TimeSpan: packing start and end time
+ * CourseTime: packing time span, weekday and week
+ */
+use std::error::Error;
+use chrono::{DateTime, Utc, Local, Date, Duration, LocalResult};
+
+#[derive(PartialEq, Eq,Debug,Clone,Copy)]
+pub struct Time{
+    hour: u8,
+    minute: u8,
+}
+
+impl Time {
+    pub fn new(hour: u8, minute: u8) -> Self {
+        Self {
+            hour,
+            minute,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq,Debug,Clone,Copy)]
+pub struct TimeSpan {
+    pub start: Time,
+    pub end: Time,
+}
+
+macro_rules! Ts {
+    ($start:expr, $end:expr) => {{
+        let start_time: Vec<u8> = $start.split(':').map(|s| s.parse().unwrap()).collect();
+        let end_time: Vec<u8> = $end.split(':').map(|s| s.parse().unwrap()).collect();
+
+        TimeSpan::new(
+            Time::new(start_time[0], start_time[1]),
+            Time::new(end_time[0], end_time[1]),
+        )
+    }};
+}
+pub(crate) use Ts;
+
+impl TimeSpan {
+    pub fn new(start: Time, end: Time) -> Self {
+        Self {
+            start,
+            end,
+        }
+    }
+
+    pub fn from_course_index(idx: u8) -> Result<TimeSpan, Box<dyn Error>> {
+        match idx {
+            1 => Ok(TimeSpan::new(Time::new(8, 0), Time::new(8, 50))),
+            2 => Ok(TimeSpan::new(Time::new(9, 0), Time::new(9, 50))),
+            3 => Ok(TimeSpan::new(Time::new(10, 10), Time::new(11, 0))),
+            4 => Ok(TimeSpan::new(Time::new(11, 10), Time::new(12, 0))),
+            5 => Ok(TimeSpan::new(Time::new(14, 0), Time::new(14, 50))),
+            6 => Ok(TimeSpan::new(Time::new(15, 0), Time::new(15, 50))),
+            7 => Ok(TimeSpan::new(Time::new(16, 10), Time::new(17, 0))),
+            8 => Ok(TimeSpan::new(Time::new(17, 10), Time::new(18, 0))),
+            9 => Ok(TimeSpan::new(Time::new(18, 30), Time::new(19, 20))),
+            10 => Ok(TimeSpan::new(Time::new(19, 30), Time::new(20, 20))),
+            11 => Ok(TimeSpan::new(Time::new(20, 30), Time::new(21, 20))),
+            12 => Ok(TimeSpan::new(Time::new(21, 30), Time::new(22, 20))),
+            13 => Ok(TimeSpan::new(Time::new(22, 30), Time::new(23, 20))),
+            _ => Err("Invalid time".into()),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CourseTime{
+    span: TimeSpan,
+    day: u8,    // 1 for Monday, 7 for Sunday
+    week: u8,   // 1 for the first week, 17 for the last week
+}
+
+impl CourseTime {
+    pub fn new(span: TimeSpan, day: u8, week: u8) -> Self {
+        Self {
+            span,
+            day,
+            week,
+        }
+    }
+
+    pub fn to_datetime(&self,first_week_start: DateTime<Local>) -> Result<(DateTime<Local>,DateTime<Local>),Box<dyn Error>> {
+        let [start,end]=[self.span.start,self.span.end];
+
+        let date=(first_week_start+Duration::weeks((self.week-1).into())).date_naive();
+
+        let start=date
+            .and_hms_opt(start.hour.into(), start.minute.into(), 0)
+            .ok_or("Cannot calculate start time")?
+            .and_local_timezone(first_week_start.timezone());
+        let LocalResult::Single(start)=start else{
+            return Err("Cannot restore timezone".into());
+        };
+
+        let stop=date
+            .and_hms_opt(end.hour.into(), end.minute.into(), 0)
+            .ok_or("Cannot calculate end time")?
+            .and_local_timezone(first_week_start.timezone());
+        let LocalResult::Single(stop)=stop else{
+            return Err("Cannot restore timezone".into());
+        };
+
+        Ok((start,stop))
+    }
+}
+
+impl std::fmt::Display for CourseTime{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}-{}:{},第{}周 周{}",
+            self.span.start.hour,self.span.start.minute,
+            self.span.end.hour,self.span.end.minute,
+            self.day, self.week)
+    }
+}
+impl std::fmt::Debug for CourseTime{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+

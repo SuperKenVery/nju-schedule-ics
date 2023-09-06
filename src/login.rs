@@ -66,8 +66,8 @@ fn extract_context(document: &VDom) -> Option<HashMap<String, String>> {
 }
 
 #[derive(Debug)]
-struct LoginCredential {
-    castgc: String,
+pub struct LoginCredential {
+    pub castgc: String,
 }
 
 impl LoginCredential {
