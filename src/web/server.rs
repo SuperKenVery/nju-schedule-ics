@@ -12,19 +12,20 @@ use std::error::Error;
 use std::sync::Arc;
 
 use crate::nju::login::{LoginCredential,LoginOperation};
-use super::login::{Authenticator, new_login_session,finish_login};
+use super::{login::{Authenticator, new_login_session,finish_login}, db::RedisDb};
 use super::subscription::{get_ical,test_ical};
+use super::db;
 
 pub struct AppState {
     pub auth: Mutex<Authenticator>,
     // TODO: cookie db should be persistent!
-    pub cookie_db: Mutex<HashMap<String, LoginCredential>>,
+    pub cookie_db: Mutex<RedisDb>,
 }
 
-pub fn build_app() -> Router {
+pub async fn build_app(db: db::RedisDb) -> Result<Router,anyhow::Error> {
     let state=Arc::new(AppState{
         auth: Mutex::new(Authenticator::new()),
-        cookie_db: Mutex::new(HashMap::new()),
+        cookie_db: Mutex::new(db),
     });
 
 
@@ -36,7 +37,7 @@ pub fn build_app() -> Router {
         .route("/test.ics",             get(test_ical))
         .with_state(state);
 
-    app
+    Ok(app)
 }
 
 #[cfg(test)]
@@ -46,8 +47,13 @@ mod test{
 
     #[tokio::test]
     async fn start_server() {
-        let app=build_app();
+        println!("Connecting to redis...");
+        let url="redis://127.0.0.1:6379/";
+        let db=db::RedisDb::new(url).await.unwrap();
 
+        let app=build_app(db).await.unwrap();
+
+        println!("Starting server...");
         axum::Server::bind(&"0.0.0.0:8999".parse().unwrap())
             .serve(app.into_make_service())
             .await

@@ -63,11 +63,10 @@ pub async fn finish_login(
     };
 
 
-    let cookiedb=&state.clone()
-        .cookie_db;
-    let mut cookiedb=cookiedb.lock().await;
+    let cookie_db=&state.clone().cookie_db;
+    let mut cookie_db=cookie_db.lock().await;
 
-    cookiedb.insert(session.clone(), cred);
+    cookie_db.insert(session.clone(), cred.castgc).await?;
 
     auth.sessions.remove(&session);
 

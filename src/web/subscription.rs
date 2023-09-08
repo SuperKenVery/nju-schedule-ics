@@ -17,9 +17,13 @@ pub async fn get_ical(
     Path(uuid): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Bytes,AppError> {
+    println!("get_ical called");
     let cookie_db=&mut state.cookie_db.lock().await;
     let uuid=uuid.to_string();
-    let cred=cookie_db.get(&uuid).ok_or("Invalid uuid").map_err(anyhow::Error::msg)?;
+    let castgc=cookie_db
+        .get(&uuid).await?
+        .ok_or("Invalid session").map_err(anyhow::Error::msg)?;
+    let cred=LoginCredential::new(castgc);
     println!("Buliding calendar...");
     let cal=crate::schedule::calendar::Calendar::from_login(cred.clone()).await?;
     let cal=cal.to_bytes()?;
