@@ -1,5 +1,6 @@
 use std::error::Error;
 use json;
+use json::JsonValue::Array as jsonArray;
 use super::time::{TimeSpan, CourseTime,Ts,Time};
 use std::num::ParseIntError;
 
@@ -13,13 +14,16 @@ pub struct Course {
 }
 
 impl Course {
-    pub fn from_json(raw: json::JsonValue) -> Result<Self, Box<dyn Error>> {
-        let name=raw["KCM"].as_str().ok_or("Cannot extract name")?;
+    pub fn from_json(raw: json::JsonValue) -> Result<Self, anyhow::Error> {
+        let name=raw["KCM"].as_str()
+            .ok_or("Cannot extract name").map_err(anyhow::Error::msg)?;
         let location=raw["JASMC"]
-            .as_str().ok_or("Cannot extract location")?
+            .as_str()
+            .ok_or("Cannot extract location").map_err(anyhow::Error::msg)?
             .replace("（合班）", "");
 
-        let time=raw["YPSJDD"].as_str().ok_or("Cannot extract time")?;
+        let time=raw["ZCXQJCDD"].as_str()
+            .ok_or("Cannot extract time").map_err(anyhow::Error::msg)?;
         /* Example data:
          * 周三 2-4节 1-17周 仙Ⅱ-211,周五 3-4节 1-17周 仙Ⅱ-211
          * 自由时间 0-0节 7-17周 自由地点
@@ -35,7 +39,7 @@ impl Course {
          */
         let time=time.replace(",周","##周");
         /* Now they are:
-         * 周三 2-4节 1-17周 仙Ⅱ-211,周五 3-4节 1-17周 仙Ⅱ-211
+         * 周三 2-4节 1-17周 仙Ⅱ-211##周五 3-4节 1-17周 仙Ⅱ-211
          * 自由时间 0-0节 7-17周 自由地点
          * 周五 7-8节 3周|7周|11周|15周 仙Ⅰ-108
          * 周四 3-4节 1-17周 仙Ⅱ-212##周四 9-10节 1-17周 基础实验楼乙124,125##周一 3-4节 1-17周 仙Ⅱ-212
@@ -43,14 +47,14 @@ impl Course {
         let times=time.split("##").into_iter()
             .map(|time| {
                 // Weekday
-                let [weekday, time, weeks, location]=time.split(" ").collect::<Vec<&str>>()[..] else {
-                    return Err::<_,Box<dyn Error>>("Invalid weekday range str".into());
+                let [weekday, time, weeks, _location]=time.split(" ").collect::<Vec<&str>>()[..] else {
+                    return Err("Invalid weekday range str").map_err(anyhow::Error::msg);
                 };
 
                 if weekday.contains("自由时间"){
                     return Ok(vec![]);
                 }
-                let weekday: Result<u8, Box<dyn Error>>=match weekday {
+                let weekday: Result<u8, anyhow::Error>=match weekday {
                     "周一" => Ok(1),
                     "周二" => Ok(2),
                     "周三" => Ok(3),
@@ -58,7 +62,7 @@ impl Course {
                     "周五" => Ok(5),
                     "周六" => Ok(6),
                     "周日" => Ok(7),
-                    _ => Err("Invalid weekday".into()),
+                    _ => Err("Invalid weekday").map_err(anyhow::Error::msg),
                 };
                 let weekday=weekday?;
 
@@ -70,7 +74,7 @@ impl Course {
                         .split("-")
                         .map(|week| week.parse::<u8>())
                         .collect::<Result<Vec<_>,ParseIntError>>()?[..] else{
-                            return Err::<_,Box<dyn Error>>("Invalid week range str".into());
+                            return Err("Invalid week range str").map_err(anyhow::Error::msg);
                         };
                     let weeks=(start..=end).collect::<Vec<u8>>();
                     weeks
@@ -92,8 +96,8 @@ impl Course {
                         let time=TimeSpan::from_course_index(time);
                         time
                     })
-                    .collect::<Result<Vec<_>,Box<dyn Error>>>()?[..] else{
-                        return Err::<_,Box<dyn Error>>("Invalid time range str".into());
+                    .collect::<Result<Vec<_>,anyhow::Error>>()?[..] else{
+                        return Err("Invalid time range str").map_err(anyhow::Error::msg);
                     };
 
                 Ok(weeks.iter().map(|week|{
@@ -116,6 +120,17 @@ impl Course {
                 time: times,
             }
         )
+    }
+
+    pub fn batch_from_json(raw: json::JsonValue) -> Result<Vec<Self>, anyhow::Error> {
+        let rows=&raw["datas"]["cxxszhxqkb"]["rows"];
+        let jsonArray(rows)=rows else{
+            return Err("Not an array??").map_err(anyhow::Error::msg);
+        };
+        let courses=rows.into_iter()
+            .map(|c| Self::from_json(c.clone()))
+            .collect::<Result<Vec<_>,anyhow::Error>>()?;
+        Ok(courses)
     }
 }
 

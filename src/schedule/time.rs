@@ -48,7 +48,7 @@ impl TimeSpan {
         }
     }
 
-    pub fn from_course_index(idx: u8) -> Result<TimeSpan, Box<dyn Error>> {
+    pub fn from_course_index(idx: u8) -> Result<TimeSpan, anyhow::Error> {
         match idx {
             1 => Ok(TimeSpan::new(Time::new(8, 0), Time::new(8, 50))),
             2 => Ok(TimeSpan::new(Time::new(9, 0), Time::new(9, 50))),
@@ -63,7 +63,7 @@ impl TimeSpan {
             11 => Ok(TimeSpan::new(Time::new(20, 30), Time::new(21, 20))),
             12 => Ok(TimeSpan::new(Time::new(21, 30), Time::new(22, 20))),
             13 => Ok(TimeSpan::new(Time::new(22, 30), Time::new(23, 20))),
-            _ => Err("Invalid time".into()),
+            _ => Err("Invalid time").map_err(anyhow::Error::msg),
         }
     }
 }
@@ -84,25 +84,29 @@ impl CourseTime {
         }
     }
 
-    pub fn to_datetime(&self,first_week_start: DateTime<Local>) -> Result<(DateTime<Local>,DateTime<Local>),Box<dyn Error>> {
+    pub fn to_datetime(&self,first_week_start: DateTime<Local>) -> Result<(DateTime<Local>,DateTime<Local>),anyhow::Error> {
         let [start,end]=[self.span.start,self.span.end];
 
-        let date=(first_week_start+Duration::weeks((self.week-1).into())).date_naive();
+        let date=(
+            first_week_start
+            +Duration::weeks((self.week-1).into())
+            +Duration::days((self.day-1).into())
+        ).date_naive();
 
         let start=date
             .and_hms_opt(start.hour.into(), start.minute.into(), 0)
-            .ok_or("Cannot calculate start time")?
+            .ok_or("Cannot calculate start time").map_err(anyhow::Error::msg)?
             .and_local_timezone(first_week_start.timezone());
         let LocalResult::Single(start)=start else{
-            return Err("Cannot restore timezone".into());
+            return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
         };
 
         let stop=date
             .and_hms_opt(end.hour.into(), end.minute.into(), 0)
-            .ok_or("Cannot calculate end time")?
+            .ok_or("Cannot calculate end time").map_err(anyhow::Error::msg)?
             .and_local_timezone(first_week_start.timezone());
         let LocalResult::Single(stop)=stop else{
-            return Err("Cannot restore timezone".into());
+            return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
         };
 
         Ok((start,stop))

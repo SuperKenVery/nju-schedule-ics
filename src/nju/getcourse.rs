@@ -1,12 +1,16 @@
-use super::super::login::LoginCredential;
+use super::login::LoginCredential;
 use std::{error::Error, collections::HashMap};
 use reqwest::{cookie::CookieStore, header::HeaderValue, Client, Proxy};
 use std::sync::Arc;
 use json;
-use chrono::{DateTime, Utc, Datelike, Local};
-use super::course::Course;
+use chrono::{DateTime, Utc, Datelike, Local, Duration};
+use crate::schedule::course::Course;
+use anyhow;
+use reqwest_middleware::ClientWithMiddleware;
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 
-fn build_client(auth: &LoginCredential) -> Result<Client,Box<dyn Error>> {
+
+fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware,anyhow::Error> {
     let cookie_store=Arc::new(reqwest::cookie::Jar::default());
 
     let cookie=HeaderValue::from_str(&format!("CASTGC={}",auth.castgc)).unwrap();
@@ -16,16 +20,25 @@ fn build_client(auth: &LoginCredential) -> Result<Client,Box<dyn Error>> {
         &"https://authserver.nju.edu.cn".try_into().unwrap()
     );
 
-    let client=reqwest::ClientBuilder::new()
+    let reqwest_client=reqwest::ClientBuilder::new()
         .cookie_provider(cookie_store.clone())
         // Redirect by default <=10. It seems we need 9, fine.
         .user_agent("rust-reqwest/0.11.18")
+        .timeout(std::time::Duration::from_secs(3))
         .build()?;
+
+    let mut retry=ExponentialBackoff::builder()
+        .build_with_max_retries(3);
+    retry.max_retry_interval=std::time::Duration::from_secs(0);
+
+    let client=reqwest_middleware::ClientBuilder::new(reqwest_client)
+        .with(RetryTransientMiddleware::new_with_policy(retry))
+        .build();
 
     Ok(client)
 }
 
-pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, Box<dyn Error>> {
+pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Error> {
     let client=build_client(auth)?;
 
     /* We'll be redirected to authserver. As we have CASTGC, we'll be
@@ -38,12 +51,15 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, Box<dyn Er
         .send()
         .await?;
 
+    println!("Done login");
+
     let semesters=client.post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
         .send().await?
         .text().await?;
     let semesters=json::parse(&semesters)?;
     let latest_semester=semesters["datas"]["dqxnxq"]["rows"][0]["DM"].as_str()
-        .ok_or("Cannot resolve the latest semester")?;
+        .ok_or("Cannot resolve the latest semester")
+        .map_err(anyhow::Error::msg)?;
 
     let mut form = HashMap::new();
     form.insert("XNXQDM".to_string(), latest_semester);
@@ -58,14 +74,14 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, Box<dyn Er
     Ok(resp)
 }
 
-pub async fn get_course_info(auth: &LoginCredential) -> Result<Vec<Course>, Box<dyn Error>> {
+pub async fn get_course_info(auth: &LoginCredential) -> Result<Vec<Course>, anyhow::Error> {
 
 
     // https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxkcdgxx.do
     todo!()
 }
 
-pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Local>,Box<dyn Error>> {
+pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Local>,anyhow::Error> {
     let client=build_client(auth)?;
 
     let week_info=client.get("https://wx.nju.edu.cn/njukb/wap/default/classes")
@@ -76,9 +92,10 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Loc
     let name=&week_info["d"]["dateInfo"]["name"]; // "2023-2024学年上学期 第1周"
     let [_semester, week_name]=name
         .as_str()
-        .ok_or("Cannot read semester and week name")?
+        .ok_or("Cannot read semester and week name")
+        .map_err(anyhow::Error::msg)?
         .split(" ").collect::<Vec<&str>>()[..] else {
-        return Err("Invalid dateInfo name".into());
+        return Err(anyhow::Error::msg("Invalid dateInfo name"));
     };
     let week_num_str=&week_name[3..week_name.len()-3];
     let week_num=week_num_str.parse::<u8>()?;
@@ -108,7 +125,7 @@ mod test{
     use std::io::Write;
 
     async fn get_auth() -> LoginCredential {
-        LoginCredential::new("PutYourOwn", "NotGonnaTellYou",
+        LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
             |content| async move{
             let mut file=File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();

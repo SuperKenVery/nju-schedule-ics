@@ -1,36 +1,40 @@
 /* Generate iCalendar file (.ics) from Course */
 use super::course::Course;
 use ics::{Event as oriEvent, ICalendar,
-    properties::{Description,Name,Geo,DtStart,DtEnd, Location}
+    properties::{Description,Name,Geo,DtStart,DtEnd, Location, Summary}, components::Property
 };
-use chrono::{DateTime, Utc, FixedOffset, TimeZone, Local};
+use chrono::{DateTime, Utc, FixedOffset, TimeZone, Local, LocalResult};
 use uuid::Uuid;
 use std::error::Error;
 use std::ops::Deref;
 use super::location::get_geolocation;
+use crate::nju::login::LoginCredential;
+use crate::nju::getcourse;
 
-#[derive(Debug)]
-struct Event<'a>(oriEvent<'a>);
+#[derive(Debug,Clone)]
+pub struct Event<'a>(oriEvent<'a>);
 
 impl<'a> Event<'a> {
-    fn from_course(course: Course, first_week_start: DateTime<Local>) -> Result<Vec<Event<'a>>,Box<dyn Error>> {
+    fn from_course(course: &Course, first_week_start: DateTime<Local>) -> Result<Vec<Event<'a>>,anyhow::Error> {
         const TIME_FMT: &str = "%Y%m%dT%H%M%S";
-        let mut base_event = oriEvent::new(
-            Uuid::new_v4().to_string(),
-            chrono::Utc::now().format(TIME_FMT).to_string()
-        );
-
-        let geo=get_geolocation(&course.location);
-        base_event.push(Name::new(course.name));
-        base_event.push(Location::new(course.location));
-        if let Some(geo)=geo{
-            base_event.push(Geo::new(geo.to_ical_str()));
-        }
-
 
         let mut results=vec![];
-        for time in course.time{
-            let mut event=base_event.clone();
+        for time in &course.time{
+            let mut event=oriEvent::new(
+                Uuid::new_v4().to_string(),
+                chrono::Utc::now().format(TIME_FMT).to_string()
+            );
+
+            let geo=get_geolocation(&course.location);
+            event.push(Summary::new(course.name.clone()));
+            event.push(Location::new(format!("{}\\n南京大学", course.location)));
+            if let Some(geo)=geo{
+                event.push(Geo::new(geo.to_ical_str()));
+                event.push(Property::new(
+                    format!("X-APPLE-STRUCTURED-LOCATION;X-ADDRESS=南京大学;X-TITLE={}",course.location),
+                    geo.to_apple_location_str()
+                ))
+            }
 
             let (start,end)=time.to_datetime(first_week_start)?;
             event.push(DtStart::new(start.format(TIME_FMT).to_string()));
@@ -52,14 +56,81 @@ impl<'a> Deref for Event<'a>{
     }
 }
 
+#[derive(Debug)]
+pub struct Calendar<'a>(ICalendar<'a>);
+
+impl<'a> Calendar<'a> {
+
+    pub fn with_events(events: Vec<Event<'a>>) -> Self {
+        let mut cal=ICalendar::new("2.0", "ics-rs");
+        for event in events{
+            cal.add_event(event.0);
+        }
+        Self(cal)
+    }
+
+    pub async fn from_login(cred: LoginCredential) -> Result<Calendar<'a>, anyhow::Error> {
+        let first_week_start=getcourse::get_first_week_start(&cred).await?;
+        let courses=crate::nju::getcourse::get_course_raw(&cred).await?;
+        let courses=crate::schedule::course::Course::batch_from_json(json::parse(&courses)?)?;
+
+        let events=courses
+            .iter()
+            .map(|c| Event::from_course(c,first_week_start))
+
+            .collect::<Result<Vec<Vec<Event>>,anyhow::Error>>()?;
+
+        let events=events.concat();
+
+        Ok(Self::with_events(events))
+    }
+
+    pub async fn from_test() -> Result<Calendar<'a>, anyhow::Error> {
+        let first_week_start=Local.with_ymd_and_hms(2023, 9, 4, 0, 0, 0);
+        let LocalResult::Single(first_week_start)=first_week_start else{
+            Err("Failed to resolve first week start").map_err(anyhow::Error::msg)?
+        };
+
+        let courses=std::fs::read_to_string("src/nju/example.json")?;
+        let courses=crate::schedule::course::Course::batch_from_json(json::parse(&courses)?)?;
+
+        let events=courses
+            .iter()
+            .map(|c| Event::from_course(c,first_week_start))
+
+            .collect::<Result<Vec<Vec<Event>>,anyhow::Error>>()?;
+
+        let events=events.concat();
+
+        Ok(Self::with_events(events))
+    }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>,anyhow::Error> {
+        let cal=&self.0;
+        let mut buf=vec![];
+        let writer=std::io::Cursor::new(&mut buf);
+        cal.write(writer)?;
+
+        Ok(buf)
+    }
+}
+
+impl<'a> Deref for Calendar<'a>{
+    type Target=ICalendar<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[cfg(test)]
 mod test{
     use crate::schedule::course::Course;
 
     use super::*;
     use tokio;
-    use super::super::getcourse;
-    use super::super::super::login::LoginCredential;
+    use crate::nju::getcourse;
+    use crate::nju::login::LoginCredential;
     use std::fs::File;
     use std::io::Write;
     use std::process::Command;
@@ -72,7 +143,7 @@ mod test{
     }
 
     async fn get_auth() -> LoginCredential {
-        LoginCredential::new("PutYourOwn", "NotGonnaTellYou",
+        LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
             |content| async move{
             let mut file=File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();
@@ -99,7 +170,7 @@ mod test{
 
         for course in courses{
             let course=Course::from_json(course.clone()).unwrap();
-            let events=Event::from_course(course,first_week_start).unwrap();
+            let events=Event::from_course(&course,first_week_start).unwrap();
             for event in events{
                 println!("{:#?}", event);
             }

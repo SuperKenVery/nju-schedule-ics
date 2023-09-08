@@ -14,6 +14,10 @@ impl GeoLocation {
     pub fn to_ical_str(&self) -> String {
         format!("{};{}",self.latitude,self.longitude)
     }
+
+    pub fn to_apple_location_str(&self) -> String {
+        format!("geo:{},{}",self.latitude,self.longitude)
+    }
 }
 
 pub fn get_geolocation(location: &str) -> Option<GeoLocation> {
