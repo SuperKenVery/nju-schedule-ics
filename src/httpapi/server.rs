@@ -1,38 +1,40 @@
 use axum::{
-    routing::{get, post},
-    http::StatusCode,
-    response::IntoResponse,
-    Json, Router,
+    routing::{get, post}, Router,
 };
-use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use std::{collections::HashMap, cell::RefCell};
-use uuid::Uuid;
-use std::error::Error;
 use std::sync::Arc;
 
-use crate::nju::login::{LoginCredential,LoginOperation};
-use super::{login::{Authenticator, new_login_session,finish_login}, db::RedisDb};
+use super::{
+    login,
+    nojslogin,
+    db::RedisDb
+};
 use super::subscription::{get_ical,test_ical};
 use super::db;
 
 pub struct AppState {
-    pub auth: Mutex<Authenticator>,
+    pub auth: Mutex<login::Authenticator>,
     // TODO: cookie db should be persistent!
     pub cookie_db: Mutex<RedisDb>,
+    pub site_url: String,       // e.g. http://localhost:8999   No trailing slash
 }
 
-pub async fn build_app(db: db::RedisDb) -> Result<Router,anyhow::Error> {
+pub async fn build_app(db: db::RedisDb, server_url: String) -> Result<Router,anyhow::Error> {
     let state=Arc::new(AppState{
-        auth: Mutex::new(Authenticator::new()),
+        auth: Mutex::new(login::Authenticator::new()),
         cookie_db: Mutex::new(db),
+        site_url: server_url
     });
 
 
     let app = Router::new()
-        .route("/",                     get(|| async { "Hello, World!" }))
-        .route("/get_login_session",    get(new_login_session))
-        .route("/login",                post(finish_login))
+        .route("/",                     get(nojslogin::get_index_html))
+        // JSON API
+        .route("/get_login_session",    get(login::new_login_session))
+        .route("/login",                post(login::finish_login))
+        // 0-js login
+        .route("/nojs/captcha.png", get(nojslogin::get_captcha_content))
+        .route("/nojs/login", post(nojslogin::login))
         .route("/:uuid/schedule.ics",   get(get_ical))
         .route("/test.ics",             get(test_ical))
         .with_state(state);
@@ -51,7 +53,7 @@ mod test{
         let url="redis://127.0.0.1:6379/";
         let db=db::RedisDb::new(url).await.unwrap();
 
-        let app=build_app(db).await.unwrap();
+        let app=build_app(db,"http://192.168.1.179:8999".into()).await.unwrap();
 
         println!("Starting server...");
         axum::Server::bind(&"0.0.0.0:8999".parse().unwrap())

@@ -3,8 +3,7 @@
  * TimeSpan: packing start and end time
  * CourseTime: packing time span, weekday and week
  */
-use std::error::Error;
-use chrono::{DateTime, Utc, Local, Date, Duration, LocalResult};
+use chrono::{DateTime, Local, Duration, LocalResult};
 
 #[derive(PartialEq, Eq,Debug,Clone,Copy)]
 pub struct Time{
@@ -26,19 +25,6 @@ pub struct TimeSpan {
     pub start: Time,
     pub end: Time,
 }
-
-macro_rules! Ts {
-    ($start:expr, $end:expr) => {{
-        let start_time: Vec<u8> = $start.split(':').map(|s| s.parse().unwrap()).collect();
-        let end_time: Vec<u8> = $end.split(':').map(|s| s.parse().unwrap()).collect();
-
-        TimeSpan::new(
-            Time::new(start_time[0], start_time[1]),
-            Time::new(end_time[0], end_time[1]),
-        )
-    }};
-}
-pub(crate) use Ts;
 
 impl TimeSpan {
     pub fn new(start: Time, end: Time) -> Self {

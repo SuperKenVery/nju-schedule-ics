@@ -1,7 +1,6 @@
-use std::error::Error;
 use json;
 use json::JsonValue::Array as jsonArray;
-use super::time::{TimeSpan, CourseTime,Ts,Time};
+use super::time::{TimeSpan, CourseTime};
 use std::num::ParseIntError;
 
 #[derive(Debug)]
@@ -19,10 +18,11 @@ impl Course {
             .ok_or("Cannot extract name").map_err(anyhow::Error::msg)?;
         let location=raw["JASMC"]
             .as_str()
-            .ok_or("Cannot extract location").map_err(anyhow::Error::msg)?
+            .unwrap_or("")      // 比如阅读课就会没有这个字段
             .replace("（合班）", "");
 
-        let time=raw["ZCXQJCDD"].as_str()
+        let time=raw["ZCXQJCDD"].as_str
+        ()
             .ok_or("Cannot extract time").map_err(anyhow::Error::msg)?;
         /* Example data:
          * 周三 2-4节 1-17周 仙Ⅱ-211,周五 3-4节 1-17周 仙Ⅱ-211
@@ -142,15 +142,6 @@ mod test{
     use std::fs::File;
     use json::JsonValue::Array as jsonArray;
     use std::io::Read;
-
-    #[test]
-    fn test_ts_macro(){
-        let ts=Ts!("01:2", "3:4");
-        assert_eq!(ts, TimeSpan::new(Time::new(1, 2), Time::new(3, 4)));
-
-        let ts=Ts!("10:30", "11:30");
-        assert_eq!(ts, TimeSpan::new(Time::new(10, 30), Time::new(11, 30)));
-    }
 
     #[test]
     fn test_course_from_json(){

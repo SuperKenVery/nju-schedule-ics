@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<head>
+    <title>南哪另一课表</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <style>
+        .card {
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+
+            box-shadow: 7px 7px 20px 3px #888888;
+
+
+            flex-direction: column;
+        }
+
+        .center-children {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        html,body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        #background {
+            z-index: -1;
+            position: absolute;
+            filter: blur(10px);
+            width: 110%;
+            height: 110%;
+            object-fit: cover;
+        }
+
+        #input-container {
+            z-index: 0;
+            width: 50%;
+            height: 40%;
+            min-width: 300px;
+            max-width: 500px;
+            min-height: 330px;
+            max-height: 350px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+
+        }
+
+
+    </style>
+</head>
+
+<body class="center-children">
+
+    <div id="input-container" class="card center-children">
+        <h1>南哪另一课表</h1>
+        <h4>你的订阅链接是：</h4>
+        <a href="SUBSCRIPTION_LINK">SUBSCRIPTION_LINK</a>
+        <p>打开系统日历，添加日历订阅，粘贴此链接即可看到课表。</p>
+    </div>
+
+    <img id="background" src="https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg" />
+</body>

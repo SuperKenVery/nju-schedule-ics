@@ -1,11 +1,10 @@
 /* Generate iCalendar file (.ics) from Course */
 use super::course::Course;
 use ics::{Event as oriEvent, ICalendar,
-    properties::{Description,Name,Geo,DtStart,DtEnd, Location, Summary}, components::Property
+    properties::{Geo,DtStart,DtEnd, Location, Summary}, components::Property
 };
-use chrono::{DateTime, Utc, FixedOffset, TimeZone, Local, LocalResult};
+use chrono::{DateTime, TimeZone, Local, LocalResult};
 use uuid::Uuid;
-use std::error::Error;
 use std::ops::Deref;
 use super::location::get_geolocation;
 use crate::nju::login::LoginCredential;

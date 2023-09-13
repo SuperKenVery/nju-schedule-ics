@@ -1,5 +1,4 @@
 use clap::Parser;
-use toml;
 use super::db;
 
 #[derive(Parser,Debug)]

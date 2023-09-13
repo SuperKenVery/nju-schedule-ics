@@ -13,3 +13,5 @@ mod error;
 mod subscription;
 /* 与redis进行通信 */
 mod db;
+/* 给无js的HTML页面使用的登陆API */
+mod nojslogin;

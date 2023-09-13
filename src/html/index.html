@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+    <title>南哪另一课表</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <style>
+        .card {
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+
+            box-shadow: 7px 7px 20px 3px #888888;
+
+
+            flex-direction: column;
+        }
+
+        .center-children {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inputbox {
+            margin: 10px;
+            width: 80%;
+            height: 40px;
+
+            border: none;
+            border-radius: 20px;
+            border-color: #b0b0b0;
+
+            padding: 0px 10px;
+            margin: 10px;
+        }
+
+        #captcha {
+            margin: 0;
+        }
+
+
+        .inputbox:focus-visible{
+            outline: 2px solid rgb(37, 138, 233);
+            transition: outline 0.3s ease;
+        }
+
+        html,body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        #background {
+            z-index: -1;
+            position: absolute;
+            filter: blur(10px);
+            width: 110%;
+            height: 110%;
+            object-fit: cover;
+        }
+
+        #input-container {
+            z-index: 0;
+            width: 50%;
+            height: 40%;
+            min-width: 300px;
+            max-width: 500px;
+            min-height: 330px;
+            max-height: 350px;
+        }
+
+        #input-form {
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+        }
+
+
+
+
+        @media (prefers-color-scheme: dark) {
+
+        }
+
+
+    </style>
+</head>
+
+<body class="center-children">
+
+    <div id="input-container" class="card center-children">
+        <h1>南哪另一课表</h1>
+        <form action="/nojs/login" id="input-form" class="center-children" method="post">
+            <input class="inputbox" name="username" placeholder="学号" type="text" />
+            <input class="inputbox" name="password" placeholder="密码" type="password" />
+            <div class="inputbox">
+                <input class="inputbox" id="captcha" name="captcha_answer" placeholder="验证码" type="text" />
+                <img src="/nojs/captcha.png" />
+            </div>
+
+            <input type="submit" value="登录" />
+        </form>
+    </div>
+
+    <img id="background" src="https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg" />
+</body>

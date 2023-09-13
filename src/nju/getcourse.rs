@@ -1,10 +1,10 @@
 use super::login::LoginCredential;
-use std::{error::Error, collections::HashMap};
-use reqwest::{cookie::CookieStore, header::HeaderValue, Client, Proxy};
+use std::collections::HashMap;
+use reqwest::{cookie::CookieStore, header::HeaderValue};
 use std::sync::Arc;
 use json;
-use chrono::{DateTime, Utc, Datelike, Local, Duration};
-use crate::schedule::course::Course;
+use chrono::{DateTime, Datelike, Local};
+// use crate::schedule::course::Course;
 use anyhow;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -28,7 +28,7 @@ fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware,anyhow::E
         .build()?;
 
     let mut retry=ExponentialBackoff::builder()
-        .build_with_max_retries(3);
+        .build_with_max_retries(10);
     retry.max_retry_interval=std::time::Duration::from_secs(0);
 
     let client=reqwest_middleware::ClientBuilder::new(reqwest_client)
@@ -74,12 +74,12 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
     Ok(resp)
 }
 
-pub async fn get_course_info(auth: &LoginCredential) -> Result<Vec<Course>, anyhow::Error> {
+// pub async fn get_course_info(auth: &LoginCredential) -> Result<Vec<Course>, anyhow::Error> {
 
 
-    // https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxkcdgxx.do
-    todo!()
-}
+//     // https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxkcdgxx.do
+//     todo!()
+// }
 
 pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Local>,anyhow::Error> {
     let client=build_client(auth)?;
@@ -116,6 +116,7 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Loc
 
 }
 
+#[cfg(test)]
 mod test{
     use super::*;
     use tokio;

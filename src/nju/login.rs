@@ -5,7 +5,7 @@ use aes::{
 use base64::{engine::general_purpose, Engine as _};
 use cbc;
 use core::ops::Deref;
-use std::{collections::HashMap, error::Error, future::Future, any};
+use std::{collections::HashMap, future::Future};
 use tl::{self, VDom};
 
 fn encrypt(password: &str, salt: &str) -> String {
@@ -84,7 +84,7 @@ impl LoginCredential {
         F: Future<Output = String>,
     {
         let a=LoginOperation::start().await?;
-        let LoginOperation::WaitingVerificationCode{captcha,client,context}=&a else{
+        let LoginOperation::WaitingVerificationCode{captcha,client: _,context: _}=&a else{
             unreachable!("LoginOperation is not WaitongForVerificationCode after start()")
         };
         let captcha_answer=captcha_cb(captcha.clone()).await;
@@ -157,7 +157,7 @@ impl LoginOperation {
     }
 
     pub async fn finish(&self,username: &str, password: &str, captcha_answer: &str) -> Result<Self,anyhow::Error> {
-        let Self::WaitingVerificationCode { client, captcha, context }=self else{
+        let Self::WaitingVerificationCode { client, captcha: _, context }=self else{
             return Err("Cannot finish a finished login operation").map_err(anyhow::Error::msg);
         };
 

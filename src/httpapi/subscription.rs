@@ -1,22 +1,18 @@
-use std::{collections::HashMap, any};
-use std::error::Error;
-use axum::response::AppendHeaders;
-use axum::{Json, extract::State, body::Bytes, extract::Path};
+use axum::http::{HeaderMap, HeaderValue, header};
+use axum::response::IntoResponse;
+use axum::{extract::State, body::Bytes, extract::Path};
 use axum_macros::debug_handler;
 use uuid::Uuid;
-use serde::{Serialize,Deserialize};
-use crate::nju::login::{LoginCredential,LoginOperation};
+use crate::nju::login::LoginCredential;
 use super::server::AppState;
 use std::sync::Arc;
 use super::error::AppError;
-use base64::{engine::general_purpose::STANDARD as base64, Engine};
-use std::ops::Deref;
 
 #[debug_handler]
 pub async fn get_ical(
     Path(uuid): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-) -> Result<Bytes,AppError> {
+) -> Result<impl IntoResponse,AppError> {
     println!("get_ical called");
     let cookie_db=&mut state.cookie_db.lock().await;
     let uuid=uuid.to_string();
@@ -29,7 +25,15 @@ pub async fn get_ical(
     let cal=cal.to_bytes()?;
     println!("Done");
 
-    Ok(cal.into())
+    let mut headers=HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_str("text/calendar")?);
+
+    Ok(
+        (
+            headers,
+            cal,
+        )
+    )
 }
 
 #[debug_handler]
