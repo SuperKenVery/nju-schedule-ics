@@ -8,7 +8,7 @@ pub mod config;
  */
 mod login;
 /* 让handler中可以使用`?`来处理错误 */
-mod error;
+pub mod error;
 /* 生成日历订阅文件 */
 mod subscription;
 /* 与redis进行通信 */

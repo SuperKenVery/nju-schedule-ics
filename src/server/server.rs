@@ -7,14 +7,14 @@ use std::sync::Arc;
 use super::{
     login,
     nojslogin,
-    db::RedisDb
+    db::RedisDb,
+    config::{parse_config, from_commandline}, error::AppError
 };
 use super::subscription::{get_ical,test_ical};
 use super::db;
 
 pub struct AppState {
     pub auth: Mutex<login::Authenticator>,
-    // TODO: cookie db should be persistent!
     pub cookie_db: Mutex<RedisDb>,
     pub site_url: String,       // e.g. http://localhost:8999   No trailing slash
 }
@@ -28,18 +28,38 @@ pub async fn build_app(db: db::RedisDb, server_url: String) -> Result<Router,any
 
 
     let app = Router::new()
-        .route("/",                     get(nojslogin::get_index_html))
+        .route("/",                   get(nojslogin::get_index_html))
         // JSON API
-        .route("/get_login_session",    get(login::new_login_session))
-        .route("/login",                post(login::finish_login))
+        .route("/get_login_session",  get(login::new_login_session))
+        .route("/login",              post(login::finish_login))
         // 0-js login
-        .route("/nojs/captcha.png", get(nojslogin::get_captcha_content))
-        .route("/nojs/login", post(nojslogin::login))
-        .route("/:uuid/schedule.ics",   get(get_ical))
-        .route("/test.ics",             get(test_ical))
+        .route("/nojs/captcha.png",   get(nojslogin::get_captcha_content))
+        .route("/nojs/login",         post(nojslogin::login))
+        .route("/:uuid/schedule.ics", get(get_ical))
+        .route("/test.ics",           get(test_ical))
         .with_state(state);
 
     Ok(app)
+}
+
+pub async fn start_server_from_config(filename: &str) -> Result<(),AppError> {
+    let (app,config)=parse_config(filename).await?;
+
+    axum::Server::bind(&config.listen_addr.parse()?)
+        .serve(app.into_make_service())
+        .await?;
+
+    Ok(())
+}
+
+pub async fn start_server_from_commandline() -> Result<(),AppError> {
+    let (app,config)=from_commandline().await?;
+
+    axum::Server::bind(&config.listen_addr.parse()?)
+        .serve(app.into_make_service())
+        .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

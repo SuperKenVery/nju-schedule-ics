@@ -20,6 +20,6 @@ reqwest-middleware = "0.2.3"
 reqwest-retry = "0.2.3"
 serde = { version = "1.0.188", features = ["derive"] }
 tl = "0.7.7"
-tokio = { version = "1.29.1", features = ["macros"] }
+tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 toml = "0.7.6"
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
