@@ -224,7 +224,7 @@ mod test {
 
     #[tokio::test]
     async fn get_auth() -> () {
-        let a=LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
+        let _a=LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
             |content| async move{
             let mut file=File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();
