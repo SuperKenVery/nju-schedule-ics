@@ -7,11 +7,12 @@ use axum::{Json, extract::State, extract::Form,
 use axum_macros::debug_handler;
 use uuid::Uuid;
 use serde::{Serialize,Deserialize};
-use crate::nju::login::LoginOperation;
 use super::server::AppState;
 use std::sync::Arc;
 use super::error::AppError;
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
+use super::db::CookieDb;
+use crate::nju::login::{LoginOperation, LoginCredential};
 
 // Get captcha content
 #[derive(Serialize)]
@@ -91,10 +92,18 @@ pub struct Authenticator {
 }
 
 impl Authenticator {
-    pub fn new() -> Self {
-        Self {
-            sessions: HashMap::new(),
+    pub async fn new(db: &CookieDb) -> Result<Self,anyhow::Error> {
+        let mut sessions=HashMap::new();
+        for (k,v) in db.get_all().await? {
+            sessions.insert(
+                k,
+                LoginOperation::Done(LoginCredential::new(v))
+            );
         }
+
+        Ok(Self {
+            sessions,
+        })
     }
 
     pub async fn new_session(&mut self) -> Result<String,anyhow::Error> {

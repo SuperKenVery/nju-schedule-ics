@@ -1,17 +1,35 @@
 // Use redis with its persistence feature as the db
 
-use redis::{Client,AsyncCommands};
+// use redis::{Client,AsyncCommands};
+use sqlx::sqlite::{SqliteConnectOptions,SqlitePool, SqlitePoolOptions};
+use std::str::FromStr;
 
-pub struct RedisDb{
-    connection: redis::aio::Connection,
+pub struct CookieDb{
+    // connection: redis::aio::Connection,
+    pool: SqlitePool,
 }
 
-impl RedisDb {
-    pub async fn new(url: &str) -> Result<Self,anyhow::Error> {
-        let client=Client::open(url)?;
-        let connection=client.get_async_connection().await?;
+impl CookieDb {
+    pub async fn new(path: &str) -> Result<Self,anyhow::Error> {
+        let options=SqliteConnectOptions::from_str(path)?
+            .create_if_missing(true);
 
-        Ok(RedisDb { connection })
+        let pool=SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect_with(options).await?;
+
+        sqlx::query("
+            CREATE TABLE IF NOT EXISTS castgc
+            (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT NOT NULL
+            )
+            ")
+            .execute(&pool)
+            .await?;
+
+        Ok(CookieDb { pool })
     }
 
     pub async fn insert<K,V>(&mut self, key: K, value: V) -> Result<(),anyhow::Error>
@@ -21,11 +39,14 @@ impl RedisDb {
     {
         let key=key.to_string();
         let value=value.to_string();
-        println!("Insert {} {}", key, value);
-        self.connection.set(key, value).await?;
-
+        sqlx::query("INSERT INTO castgc (key, value) VALUES (?, ?)")
+            .bind(key)
+            .bind(value)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
+
     }
 
     pub async fn get<K>(&mut self, key: K) -> Result<Option<String>,anyhow::Error>
@@ -34,9 +55,26 @@ impl RedisDb {
     {
         let key=key.to_string();
         println!("Getting {}", key);
-        let value=self.connection.get(key).await?;
+        // let value=self.connection.get(key).await?;
 
-        Ok(value)
+        let row: Option<(String,)> = sqlx::query_as("SELECT value FROM castgc WHERE key = ?")
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(row)=row {
+            Ok(Some(row.0))
+        } else {
+            Err(anyhow::Error::msg("Not found"))
+        }
+    }
+
+    pub async fn get_all(&self) -> Result<Vec<(String,String)>,anyhow::Error> {
+        let rows: Vec<(String,String)> = sqlx::query_as("SELECT key, value FROM castgc")
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows)
     }
 
 

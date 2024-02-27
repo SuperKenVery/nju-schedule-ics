@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 aes = "0.8.3"
-anyhow = "1.0.75"
+anyhow = { version = "1.0.75", features = ["backtrace"] }
 axum = "0.6.20"
 axum-macros = "0.3.8"
 base64 = "0.21.2"
@@ -19,6 +19,7 @@ reqwest = { version = "0.11.18", features = ["cookie_store", "cookies"] }
 reqwest-middleware = "0.2.3"
 reqwest-retry = "0.2.3"
 serde = { version = "1.0.188", features = ["derive"] }
+sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio"] }
 tl = "0.7.7"
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 toml = "0.7.6"

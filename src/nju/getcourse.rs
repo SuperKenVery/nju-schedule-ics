@@ -1,6 +1,5 @@
 use super::login::LoginCredential;
 use std::collections::HashMap;
-use reqwest::{cookie::CookieStore, header::HeaderValue};
 use std::sync::Arc;
 use json;
 use chrono::{DateTime, Datelike, Local};
@@ -12,24 +11,17 @@ use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 
 fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware,anyhow::Error> {
     let cookie_store=Arc::new(reqwest::cookie::Jar::default());
-
-    let cookie=HeaderValue::from_str(&format!("CASTGC={}",auth.castgc)).unwrap();
-
-    cookie_store.set_cookies(
-        &mut vec![&cookie].into_iter(),
-        &"https://authserver.nju.edu.cn".try_into().unwrap()
-    );
+    cookie_store.add_cookie_str(&format!("CASTGC={}",auth.castgc), &"https://authserver.nju.edu.cn".try_into().unwrap());
 
     let reqwest_client=reqwest::ClientBuilder::new()
         .cookie_provider(cookie_store.clone())
         // Redirect by default <=10. It seems we need 9, fine.
         .user_agent("rust-reqwest/0.11.18")
-        .timeout(std::time::Duration::from_secs(3))
+        .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
-    let mut retry=ExponentialBackoff::builder()
+    let retry=ExponentialBackoff::builder()
         .build_with_max_retries(10);
-    retry.max_retry_interval=std::time::Duration::from_secs(0);
 
     let client=reqwest_middleware::ClientBuilder::new(reqwest_client)
         .with(RetryTransientMiddleware::new_with_policy(retry))
@@ -61,10 +53,11 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
         .ok_or("Cannot resolve the latest semester")
         .map_err(anyhow::Error::msg)?;
 
-    let mut form = HashMap::new();
-    form.insert("XNXQDM".to_string(), latest_semester);
-    form.insert("pageSize".into(), "9999");
-    form.insert("pageNumber".into(), "1");
+    let form = HashMap::from([
+        ("XNXQDM", latest_semester),
+        ("pageSize", "9999"),
+        ("pageNumber", "1"),
+    ]);
 
     let resp=client.post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/xskcb/cxxszhxqkb.do")
         .form(&form)
@@ -94,11 +87,11 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Loc
         .as_str()
         .ok_or("Cannot read semester and week name")
         .map_err(anyhow::Error::msg)?
-        .split(" ").collect::<Vec<&str>>()[..] else {
+        .split(" ").collect::<Vec<&str>>()[..]
+    else {
         return Err(anyhow::Error::msg("Invalid dateInfo name"));
     };
-    let week_num_str=&week_name[3..week_name.len()-3];
-    let week_num=week_num_str.parse::<u8>()?;
+    let week_num=week_name[3..week_name.len()-3].parse::<u8>()?;
 
     // Get local date from chrono
     let local_date=chrono::Local::now();

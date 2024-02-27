@@ -6,10 +6,3 @@ services:
       - config.toml:/config.toml
     ports:
       - 8899:8899
-
-  redis:
-    image: redis:7.2.1-alpine3.18
-    volumes:
-      # Change this to your desired directory to store data
-      - data:/data
-    command: redis-server --save 10 1 --dir /data

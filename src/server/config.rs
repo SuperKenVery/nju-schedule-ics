@@ -16,7 +16,7 @@ struct Args{
 
 #[derive(Deserialize)]
 pub struct Config{
-    pub redis_url: String,
+    pub db_path: String,
     pub site_url: String,
     pub listen_addr: String,
 }
@@ -28,7 +28,7 @@ pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
         Ok(config) => {
             let config: Config=toml::from_str(&config)?;
 
-            let db=db::RedisDb::new(&config.redis_url).await?;
+            let db=db::CookieDb::new(&config.db_path).await?;
 
             Ok(
                 (
@@ -42,9 +42,9 @@ pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
             if e.kind()==std::io::ErrorKind::NotFound {
                 println!("Creating default config file...");
                 let result=std::fs::write(path, r#"
-# The URL to connect to redis.
-# If you're using the provided docker-compose.yml, don't change this.
-redis_url="redis://redis:6379/"
+# The path to SQLite database
+# which stores cookies
+db_path="./cookies.sqlite"
 
 # The base URL of this site
 # Don't add the trailing slash

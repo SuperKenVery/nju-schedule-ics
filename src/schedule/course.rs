@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use json;
 use json::JsonValue::Array as jsonArray;
 use super::time::{TimeSpan, CourseTime};
@@ -29,6 +30,7 @@ impl Course {
          * 自由时间 0-0节 7-17周 自由地点
          * 周五 7-8节 3周,7周,11周,15周 仙Ⅰ-108
          * 周四 3-4节 1-17周 仙Ⅱ-212,周四 9-10节 1-17周 基础实验楼乙124,125,周一 3-4节 1-17周 仙Ⅱ-212
+         * 周三 3-4节 2-16周(双)
          */
         let time=time.replace("周,", "周|");
         /* Now they are:
@@ -36,6 +38,7 @@ impl Course {
          * 自由时间 0-0节 7-17周 自由地点
          * 周五 7-8节 3周|7周|11周|15周 仙Ⅰ-108
          * 周四 3-4节 1-17周 仙Ⅱ-212,周四 9-10节 1-17周 基础实验楼乙124,125,周一 3-4节 1-17周 仙Ⅱ-212
+         * 周三 3-4节 2-16周(双)
          */
         let time=time.replace(",周","##周");
         /* Now they are:
@@ -43,12 +46,13 @@ impl Course {
          * 自由时间 0-0节 7-17周 自由地点
          * 周五 7-8节 3周|7周|11周|15周 仙Ⅰ-108
          * 周四 3-4节 1-17周 仙Ⅱ-212##周四 9-10节 1-17周 基础实验楼乙124,125##周一 3-4节 1-17周 仙Ⅱ-212
+         * 周三 3-4节 2-16周(双)
          */
         let times=time.split("##").into_iter()
             .map(|time| {
                 // Weekday
                 let [weekday, time, weeks, _location]=time.split(" ").collect::<Vec<&str>>()[..] else {
-                    return Err("Invalid weekday range str").map_err(anyhow::Error::msg);
+                    return Err(anyhow!("Invalid time str: {:?}",time));
                 };
 
                 if weekday.contains("自由时间"){
@@ -69,6 +73,14 @@ impl Course {
                 // Weeks
                 let weeks=if weeks.contains("-"){
                     // Chinese character takes 3 bytes
+                    let (weeks, cond): (&str, Box<dyn Fn(u8) -> bool>) = if weeks.contains("(双)"){
+                        (&weeks[..weeks.len()-5], Box::new(|week| week%2==0))
+                    }else if weeks.contains("(单)"){
+                        (&weeks[..weeks.len()-5], Box::new(|week| week%2==1))
+                    }else{
+                        (&weeks[..], Box::new(|_| true))
+                    };
+
                     let weeks=&weeks[0..weeks.len()-3];
                     let [start, end]=weeks
                         .split("-")
@@ -76,7 +88,9 @@ impl Course {
                         .collect::<Result<Vec<_>,ParseIntError>>()?[..] else{
                             return Err("Invalid week range str").map_err(anyhow::Error::msg);
                         };
-                    let weeks=(start..=end).collect::<Vec<u8>>();
+                    let weeks=(start..=end)
+                        .filter(|week| cond(*week))
+                        .collect::<Vec<u8>>();
                     weeks
                 }else{
                     weeks

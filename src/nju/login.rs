@@ -85,7 +85,7 @@ impl LoginCredential {
     {
         let a=LoginOperation::start().await?;
         let LoginOperation::WaitingVerificationCode{captcha,client: _,context: _}=&a else{
-            unreachable!("LoginOperation is not WaitongForVerificationCode after start()")
+            unreachable!("LoginOperation is not WaitingForVerificationCode after start()")
         };
         let captcha_answer=captcha_cb(captcha.clone()).await;
 
@@ -109,15 +109,10 @@ pub enum LoginOperation{
 
 impl LoginOperation {
     pub async fn start() -> Result<Self,anyhow::Error> {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".parse().unwrap());
-        headers.insert("origin", "https://authserver.nju.edu.cn".parse().unwrap());
-        headers.insert(
-            "referer",
-            "https://authserver.nju.edu.cn/authserver/login"
-                .parse()
-                .unwrap(),
-        );
+        let mut headers=reqwest::header::HeaderMap::new();
+        headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
+        headers.insert("origin", "https://authserver.nju.edu.cn".try_into().unwrap());
+        headers.insert("referer", "https://authserver.nju.edu.cn/authserver/login".try_into().unwrap());
 
         let client = reqwest::ClientBuilder::new()
             .default_headers(headers)
@@ -165,8 +160,9 @@ impl LoginOperation {
 
         let mut form = context.clone();
         form.insert("username".to_string(), username.to_string());
-        form.insert("password".into(), encrypted_password);
-        form.insert("captchaResponse".into(), captcha_answer.to_string());
+        form.insert("password".to_string(), encrypted_password);
+        form.insert("captchaResponse".to_string(), captcha_answer.to_string());
+        form.insert("dllt".to_string(), "mobileLogin".to_string());  // Get a long-term cookie, and prevent SMS code verification
 
         let login_response = client
             .post("https://authserver.nju.edu.cn/authserver/login")

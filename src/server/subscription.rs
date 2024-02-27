@@ -20,7 +20,7 @@ pub async fn get_ical(
         .get(&uuid).await?
         .ok_or("Invalid session").map_err(anyhow::Error::msg)?;
     let cred=LoginCredential::new(castgc);
-    println!("Buliding calendar...");
+    println!("Building calendar...");
     let cal=crate::schedule::calendar::Calendar::from_login(cred.clone()).await?;
     let cal=cal.to_bytes()?;
     println!("Done");

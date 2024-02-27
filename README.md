@@ -8,27 +8,20 @@
 
 ## 自建服务器
 
-使用 `docker-compose`。
+```bash
+cargo run -- --config config.toml
+```
 
-1. 根据下面的示例配置文件，编写自己的配置文件。
-2. 根据注释修改 `docker-compose.yml`
-    * 指定好配置文件的路径
-    * 指定好redis的存储路径
-    * 如果需要，修改映射的端口
-3. 配置好自己的反代，比如用caddy套上https
+如果指定的文件不存在则会生成默认的配置文件并退出。
 
-
-4. 然后：
-    `sudo docker-compose up -d`
-
-即可。
+也可以使用提供的Dockerfile和docker compose。
 
 ### 配置文件
 
 ```toml
-# The URL to connect to redis.
-# If you're using the provided docker-compose.yml, don't change this.
-redis_url="redis://redis:6379/"
+# The path to SQLite database
+# which stores cookies
+db_path="./cookies.sqlite"
 
 # The base URL of this site
 # Don't add the trailing slash

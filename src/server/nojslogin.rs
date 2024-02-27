@@ -69,7 +69,7 @@ pub async fn login(
     let cookie_db=&state.clone().cookie_db;
     let mut cookie_db=cookie_db.lock().await;
 
-    cookie_db.insert(session.clone(), cred.castgc.clone()).await?;
+    cookie_db.insert(session, cred.castgc.clone()).await?;
     auth.sessions.remove(session);
 
     let subscription_html=std::fs::read_to_string("src/html/subscription.html")?;
