@@ -59,7 +59,13 @@
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
+          ])) ++ 
+          (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+            openssl
           ]));
+        nativeBuildInputs = (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+          pkg-config
+        ]));
         doCheck=false;
       };
     });
