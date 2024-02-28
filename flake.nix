@@ -56,9 +56,10 @@
         version = "1.0.0";
         src = pkgs.lib.cleanSource ./.;
         cargoSha256 = "sha256-uKicpE/dHM1Ow87FWkEtNLK283+Sx6ILrEfOaEDeZhc=";
-        buildInputs = with pkgs.darwin.apple_sdk.frameworks; [
-          SystemConfiguration
-        ];
+        buildInputs = []  ++
+          (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
+            SystemConfiguration
+          ]));
         doCheck=false;
       };
     });
