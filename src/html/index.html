@@ -22,22 +22,13 @@
         }
 
         .inputbox {
-            margin: 10px;
-            width: 80%;
             height: 40px;
 
             border: none;
             border-radius: 20px;
-            border-color: #b0b0b0;
 
             padding: 0px 10px;
-            margin: 10px;
         }
-
-        #captcha {
-            margin: 0;
-        }
-
 
         .inputbox:focus-visible{
             outline: 2px solid rgb(37, 138, 233);
@@ -70,13 +61,41 @@
         }
 
         #input-form {
-            width: 100%;
+            width: 85%;
             height: 100%;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 8fr 2fr;
+            grid-template-rows: 1fr 1fr 1fr 1fr;
+            grid-template-areas:
+                "username username"
+                "password password"
+                "captcha captcha_img"
+                "login login";
+            gap: 10px;
+            margin-block-end: 20px;
         }
 
+        #login-button {
+            background-color: rgb(53, 147, 235);
+            color: white;
+            font-size: medium;
+        }
 
-
+        #username_input{
+            grid-area: username;
+        }
+        #password_input{
+            grid-area: password;
+        }
+        #captcha{
+            grid-area: captcha;
+        }
+        #captcha_image{
+            grid-area: captcha_img;
+        }
+        #login-button{
+            grid-area: login;
+        }
 
         @media (prefers-color-scheme: dark) {
 
@@ -91,14 +110,12 @@
     <div id="input-container" class="card center-children">
         <h1>南哪另一课表</h1>
         <form action="nojs/login" id="input-form" class="center-children" method="post">
-            <input class="inputbox" name="username" placeholder="学号" type="text" />
-            <input class="inputbox" name="password" placeholder="密码" type="password" />
-            <div class="inputbox">
-                <input class="inputbox" id="captcha" name="captcha_answer" placeholder="验证码" type="text" />
-                <img src="nojs/captcha.png" />
-            </div>
+            <input class="inputbox" name="username" placeholder="学号" type="text" id="username_input" />
+            <input class="inputbox" name="password" placeholder="密码" type="password" id="password_input" />
+            <input class="inputbox" id="captcha" name="captcha_answer" placeholder="验证码" type="text" />
+            <img src="nojs/captcha.png" id="captcha_image" />
 
-            <input type="submit" value="登录" />
+            <input type="submit" class="inputbox" id="login-button" value="登录" />
         </form>
     </div>
 

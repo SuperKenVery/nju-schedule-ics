@@ -135,12 +135,6 @@ mod test{
     use std::process::Command;
     use std::io::stdin;
 
-    #[test]
-    fn test_uid(){
-        let uid=Uuid::new_v4().to_string();
-        println!("{}", uid);
-    }
-
     async fn get_auth() -> LoginCredential {
         LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
             |content| async move{
