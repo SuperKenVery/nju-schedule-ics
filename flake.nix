@@ -26,9 +26,10 @@
       );
 
     rustToolchain = eachSystem (pkgs: pkgs.rust-bin.stable.latest);
-
+    name = "nju-schedule-ics";
+    version = "0.9.0";
     treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
-  in {
+  in rec {
     devShells = eachSystem (pkgs: {
       # Based on a discussion at https://github.com/oxalica/rust-overlay/issues/129
       default = pkgs.mkShell (with pkgs; {
@@ -52,14 +53,14 @@
 
     packages = eachSystem (pkgs: {
       default = pkgs.rustPlatform.buildRustPackage {
-        pname = "nju-schedule-ics";
-        version = "1.0.0";
+        pname = name;
+        inherit version;
         src = pkgs.lib.cleanSource ./.;
-        cargoSha256 = "sha256-uKicpE/dHM1Ow87FWkEtNLK283+Sx6ILrEfOaEDeZhc=";
+        cargoSha256 = "sha256-yzm14wCqxuf75KoRHoYRAErWTkjPZXmWmzDYZq+xJaY=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
-          ])) ++ 
+          ])) ++
           (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
             openssl
           ]));
@@ -67,6 +68,12 @@
           pkg-config
         ]));
         doCheck=false;
+      };
+
+      docker = pkgs.dockerTools.buildImage {
+        inherit name;
+
+        config.Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" ];
       };
     });
 
