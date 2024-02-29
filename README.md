@@ -21,6 +21,12 @@ nix build .#docker
 docker load -i result
 ```
 
+也可以从源码编译：
+
+```bash
+cargo run -- --config config.toml
+```
+
 ### 配置文件
 
 ```toml
