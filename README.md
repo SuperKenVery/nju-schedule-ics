@@ -9,12 +9,17 @@
 ## 自建服务器
 
 ```bash
-cargo run -- --config config.toml
+nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 ```
 
 如果指定的文件不存在则会生成默认的配置文件并退出。
 
-也可以使用提供的Dockerfile和docker compose。
+也可以使用docker:
+
+```bash
+nix build .#docker
+docker load -i result
+```
 
 ### 配置文件
 
