@@ -23,7 +23,7 @@ pub async fn build_app(db: db::CookieDb, server_url: String) -> Result<Router,an
     let state=Arc::new(AppState{
         auth: Mutex::new(login::Authenticator::new(&db).await?),
         cookie_db: Mutex::new(db),
-        site_url: server_url
+        site_url: server_url,
     });
 
 

@@ -72,7 +72,7 @@ pub async fn login(
     cookie_db.insert(session, cred.castgc.clone()).await?;
     auth.sessions.remove(session);
 
-    let subscription_html=std::fs::read_to_string("src/html/subscription.html")?;
+    let subscription_html=include_str!("../html/subscription.html");
     let subscription_html=subscription_html.replace("SUBSCRIPTION_LINK", format!("{}/{}/schedule.ics", state.site_url, session).as_str());
 
     let mut headers=HeaderMap::new();
@@ -88,7 +88,7 @@ pub async fn login(
 
 #[debug_handler]
 pub async fn get_index_html() -> Result<impl IntoResponse, super::error::AppError> {
-    let index_html=std::fs::read_to_string("src/html/index.html")?;
+    let index_html=include_str!("../html/index.html");
 
     let mut headers=HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "text/html".try_into()?);
