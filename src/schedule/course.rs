@@ -15,6 +15,24 @@ pub struct Course {
 
 impl Course {
     pub fn from_json(raw: json::JsonValue) -> Result<Self, anyhow::Error> {
+        let notes=raw["SKSM"].as_str();
+        let notes=if let Some(notes)=notes{
+            format!("{}\n", notes)
+        }else{
+            "".to_string()
+        };
+        let swaps=raw["TKJG"].as_str();
+        let swaps=if let Some(swaps)=swaps{
+            format!("{}\n", swaps)
+        }else{
+            "".to_string()
+        };
+        let final_exam=raw["QMKSXX"].as_str();
+        let final_exam=if let Some(final_exam)=final_exam{
+            format!("{}\n", final_exam)
+        }else{
+            "".to_string()
+        };
         let name=raw["KCM"].as_str()
             .ok_or("Cannot extract name").map_err(anyhow::Error::msg)?;
         let location=raw["JASMC"]
@@ -129,8 +147,7 @@ impl Course {
             Self {
                 name: name.to_string(),
                 location: location.to_string(),
-                // TODO: Fetch nodes
-                notes: "".to_string(),
+                notes: format!("{}{}{}", notes, swaps, final_exam),
                 time: times,
             }
         )

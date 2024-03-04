@@ -67,13 +67,6 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
     Ok(resp)
 }
 
-// pub async fn get_course_info(auth: &LoginCredential) -> Result<Vec<Course>, anyhow::Error> {
-
-
-//     // https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxkcdgxx.do
-//     todo!()
-// }
-
 pub async fn get_first_week_start(auth: &LoginCredential) -> Result<DateTime<Local>,anyhow::Error> {
     let client=build_client(auth)?;
 

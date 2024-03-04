@@ -1,7 +1,7 @@
 /* Generate iCalendar file (.ics) from Course */
 use super::course::Course;
 use ics::{Event as oriEvent, ICalendar,
-    properties::{Geo,DtStart,DtEnd, Location, Summary}, components::Property
+    properties::{Geo, DtStart, DtEnd, Location, Summary, Description}, components::Property
 };
 use chrono::{DateTime, TimeZone, Local, LocalResult};
 use uuid::Uuid;
@@ -38,6 +38,10 @@ impl<'a> Event<'a> {
             let (start,end)=time.to_datetime(first_week_start)?;
             event.push(DtStart::new(start.format(TIME_FMT).to_string()));
             event.push(DtEnd::new(end.format(TIME_FMT).to_string()));
+
+            if course.notes.is_empty() == false{
+                event.push(Description::new(course.notes.clone().replace("\n", "\\n")));
+            }
 
             results.push(Event(event));
         }

@@ -19,12 +19,20 @@ nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 ```bash
 nix build .#docker
 docker load -i result
+touch config.toml # Without this docker would create a directory
+docker run -p 8899:8899 -v ./config.toml:/config.toml nju-schedule-ics:<see tag with docker images>
 ```
 
 也可以从源码编译：
 
 ```bash
 cargo run -- --config config.toml
+```
+
+nix cache:
+
+```bash
+cachix use superkenvery
 ```
 
 ### 配置文件

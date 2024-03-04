@@ -3,17 +3,12 @@
     # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     systems.url = "github:nix-systems/default";
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.url = "nixpkgs";
-    };
   };
 
   outputs = {
     self,
     systems,
     nixpkgs,
-    treefmt-nix,
     ...
   } @ inputs: let
     eachSystem = f:
@@ -28,7 +23,6 @@
     rustToolchain = eachSystem (pkgs: pkgs.rust-bin.stable.latest);
     name = "nju-schedule-ics";
     version = "0.9.0";
-    treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
   in rec {
     devShells = eachSystem (pkgs: {
       # Based on a discussion at https://github.com/oxalica/rust-overlay/issues/129
@@ -55,7 +49,19 @@
       default = pkgs.rustPlatform.buildRustPackage {
         pname = name;
         inherit version;
-        src = pkgs.lib.cleanSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          filter = (path: type:
+              (
+                let
+                  name = builtins.baseNameOf path;
+                in
+                  (builtins.match ".*src.*" path != null || name == "Cargo.toml" || name == "Cargo.lock") &&
+                  builtins.match ".*\.DS_Store" path == null
+              )
+            );
+          src = (pkgs.lib.cleanSource ./.);
+        } ;
+
         cargoSha256 = "sha256-yzm14wCqxuf75KoRHoYRAErWTkjPZXmWmzDYZq+xJaY=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
@@ -73,14 +79,13 @@
       docker = pkgs.dockerTools.buildImage {
         inherit name;
 
-        config.Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" ];
+        copyToRoot = [ pkgs.cacert ];
+
+        config = {
+          Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" "--config" "/config.toml" ];
+          Env = [ "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" ];
+        };
       };
-    });
-
-    formatter = eachSystem (pkgs: treefmtEval.${pkgs.system}.config.build.wrapper);
-
-    checks = eachSystem (pkgs: {
-      formatting = treefmtEval.${pkgs.system}.config.build.check self;
     });
   };
 }
