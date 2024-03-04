@@ -3,12 +3,16 @@
     # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     systems.url = "github:nix-systems/default";
+
+    nix-github-actions.url = "github:nix-community/nix-github-actions";
+    nix-github-actions.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     systems,
     nixpkgs,
+    nix-github-actions,
     ...
   } @ inputs: let
     eachSystem = f:
@@ -87,5 +91,9 @@
         };
       };
     });
+
+    githubActions = nix-github-actions.lib.mkGithubMatrix {
+      checks = nixpkgs.lib.getAttrs [ "x86_64-linux" "x86_64-darwin" ] self.packages;
+      };
   };
 }
