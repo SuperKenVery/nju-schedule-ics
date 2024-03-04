@@ -2,6 +2,18 @@
 
 基于日历订阅的南京大学课表
 
+
+<img width="300px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/53ee7918-d1aa-4ba8-aa61-0f27e6e85f92">
+<img width="300px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/26d8cd25-ae52-4998-9f51-7878ea74ae17">
+
+<img width="500px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8">
+<img width="400px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1">
+
+登陆界面：
+
+<img width="915" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/9d3a7dad-d1a1-4bbe-8e05-8246329e8289">
+
+
 ## 使用
 
 [这里](https://pi.tail32664.ts.net/schedule/)
