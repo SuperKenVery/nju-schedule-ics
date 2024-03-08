@@ -59,7 +59,6 @@ pub async fn login(
             k==&"SESSION"
         })
         .collect::<Vec<(&str,&str)>>().get(0).ok_or("No SESSION cookie").map_err(anyhow::Error::msg)?.1;
-    println!("All sessions: {:#?}, session is {}",auth.sessions.keys(),session);
     let op=auth.sessions.get(session).ok_or("Invalid session").map_err(anyhow::Error::msg)?;
     let cred=op.finish(&username,&password,&captcha_answer).await?;
     let LoginOperation::Done(cred)=cred else{
@@ -73,7 +72,7 @@ pub async fn login(
     auth.sessions.remove(session);
 
     let subscription_html=include_str!("../html/subscription.html");
-    let subscription_html=subscription_html.replace("SUBSCRIPTION_LINK", format!("{}/{}/schedule.ics", state.site_url, session).as_str());
+    let subscription_html=subscription_html.replace("SUBSCRIPTION_LINK", format!("{}/{}/schedule.ics", state.site_url.replace("https://", "webcal://"), session).as_str());
 
     let mut headers=HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "text/html".try_into()?);
@@ -98,6 +97,36 @@ pub async fn get_index_html() -> Result<impl IntoResponse, super::error::AppErro
             StatusCode::OK,
             headers,
             index_html
+        )
+    )
+}
+
+#[debug_handler]
+pub async fn get_style_css() -> Result<impl IntoResponse, super::error::AppError> {
+    let style_css=include_str!("../html/style.css");
+
+    let mut headers=HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "text/css".try_into()?);
+
+    Ok(
+        (
+            StatusCode::OK,
+            headers,
+            style_css
+        )
+    )
+}
+
+#[debug_handler]
+pub async fn redirect_to_nojs() -> Result<impl IntoResponse, super::error::AppError> {
+    let mut headers=HeaderMap::new();
+    headers.insert(header::LOCATION, "/nojs/index".try_into()?);
+
+    Ok(
+        (
+            StatusCode::MOVED_PERMANENTLY,
+            headers,
+            ""
         )
     )
 }

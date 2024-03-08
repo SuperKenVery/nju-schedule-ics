@@ -54,8 +54,6 @@ impl CookieDb {
         K: ToString,
     {
         let key=key.to_string();
-        println!("Getting {}", key);
-        // let value=self.connection.get(key).await?;
 
         let row: Option<(String,)> = sqlx::query_as("SELECT value FROM castgc WHERE key = ?")
             .bind(key)

@@ -43,8 +43,6 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
         .send()
         .await?;
 
-    println!("Done login");
-
     let semesters=client.post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
         .send().await?
         .text().await?;
@@ -128,8 +126,6 @@ mod test{
     #[tokio::test]
     async fn get_course_raw_works(){
         let auth=get_auth().await;
-        // let result=get_course_raw(&auth).await.unwrap();
-        // println!("{}", result);
         let client=build_client(&auth).unwrap();
 
         let week_info=client.get("https://wx.nju.edu.cn/njukb/wap/default/classes")
