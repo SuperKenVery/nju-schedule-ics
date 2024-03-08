@@ -66,7 +66,7 @@
           src = (pkgs.lib.cleanSource ./.);
         } ;
 
-        cargoSha256 = "sha256-yzm14wCqxuf75KoRHoYRAErWTkjPZXmWmzDYZq+xJaY=";
+        cargoSha256 = "sha256-T0StqfNVn7L+99V/X7FO4nDL9DEQzzYbuFfXYcYabXE=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
