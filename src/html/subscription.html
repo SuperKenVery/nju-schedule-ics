@@ -3,60 +3,7 @@
     <title>南哪另一课表</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <style>
-        .card {
-            border-radius: 10px;
-            background-color: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-
-            box-shadow: 7px 7px 20px 3px #888888;
-
-
-            flex-direction: column;
-        }
-
-        .center-children {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        html,body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-        }
-
-        #background {
-            z-index: -1;
-            position: absolute;
-            filter: blur(10px);
-            width: 110%;
-            height: 110%;
-            object-fit: cover;
-        }
-
-        #input-container {
-            z-index: 0;
-            width: 50%;
-            height: 40%;
-            min-width: 300px;
-            max-width: 500px;
-            min-height: 330px;
-            max-height: 350px;
-        }
-
-        .info {
-            padding-inline: 20px;
-            text-align: center;
-        }
-
-        @media (prefers-color-scheme: dark) {
-
-        }
-
-
-    </style>
+    <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body class="center-children">
@@ -65,7 +12,9 @@
         <h1>南哪另一课表</h1>
         <h4 class="info">你的订阅链接是：</h4>
         <a class="info" href="SUBSCRIPTION_LINK">SUBSCRIPTION_LINK</a>
-        <p class="info">打开系统日历，添加日历订阅，粘贴此链接即可看到课表。</p>
+        <!-- <div style="display: inline"> -->
+            <p class="info">对于苹果设备，点击链接即可导入日历。对于安卓设备，你需要先安装<a href="https://box.nju.edu.cn/f/29da7e57959141b8b0cb/?dl=1">ICSx⁵</a>，然后再点击上面的链接。要在Windows中订阅日历，可以参考<a href="https://support.microsoft.com/zh-cn/office/%E5%9C%A8-outlook-com-%E6%88%96-outlook-%E7%BD%91%E9%A1%B5%E7%89%88%E4%B8%AD%E5%AF%BC%E5%85%A5%E6%88%96%E8%AE%A2%E9%98%85%E6%97%A5%E5%8E%86-cff1429c-5af6-41ec-a5b4-74f2c278e98c">这篇文章</a>。Linux用户请根据自己使用的日历软件自行探索。</p>
+        <!-- </div> -->
     </div>
 
     <img id="background" src="https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg" />
