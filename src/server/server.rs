@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post}, Router,
+    routing::{get, post}, Router
 };
 use tokio::sync::Mutex;
 use std::sync::Arc;
@@ -10,7 +10,7 @@ use super::{
     db::CookieDb,
     config::{parse_config, from_commandline}, error::AppError
 };
-use super::subscription::{get_ical,test_ical};
+use super::subscription::get_ical;
 use super::db;
 
 pub struct AppState {
@@ -28,15 +28,17 @@ pub async fn build_app(db: db::CookieDb, server_url: String) -> Result<Router,an
 
 
     let app = Router::new()
-        .route("/",                   get(nojslogin::get_index_html))
+        .route("/",                   get(nojslogin::redirect_to_nojs))
         // JSON API
         .route("/get_login_session",  get(login::new_login_session))
         .route("/login",              post(login::finish_login))
         // 0-js login
+        .route("/nojs/index", get(nojslogin::get_index_html))
         .route("/nojs/captcha.png",   get(nojslogin::get_captcha_content))
         .route("/nojs/login",         post(nojslogin::login))
+        .route("/nojs/style.css",get(nojslogin::get_style_css))
         .route("/:uuid/schedule.ics", get(get_ical))
-        .route("/test.ics",           get(test_ical))
+        // .route("/test.ics",           get(test_ical))
         .with_state(state);
 
     Ok(app)
@@ -45,8 +47,8 @@ pub async fn build_app(db: db::CookieDb, server_url: String) -> Result<Router,an
 pub async fn start_server_from_config(filename: &str) -> Result<(),AppError> {
     let (app,config)=parse_config(filename).await?;
 
-    axum::Server::bind(&config.listen_addr.parse()?)
-        .serve(app.into_make_service())
+    let listener=tokio::net::TcpListener::bind(&config.listen_addr).await?;
+    axum::serve(listener, app)
         .await?;
 
     Ok(())
@@ -55,8 +57,8 @@ pub async fn start_server_from_config(filename: &str) -> Result<(),AppError> {
 pub async fn start_server_from_commandline() -> Result<(),AppError> {
     let (app,config)=from_commandline().await?;
 
-    axum::Server::bind(&config.listen_addr.parse()?)
-        .serve(app.into_make_service())
+    let listener=tokio::net::TcpListener::bind(&config.listen_addr).await?;
+    axum::serve(listener, app)
         .await?;
 
     Ok(())
@@ -74,8 +76,9 @@ mod test{
         let app=build_app(db,"http://localhost:8999".into()).await.unwrap();
 
         println!("Starting server...");
-        axum::Server::bind(&"0.0.0.0:8999".parse().unwrap())
-            .serve(app.into_make_service())
+
+        let listener=tokio::net::TcpListener::bind("0.0.0.0:8899").await.unwrap();
+        axum::serve(listener, app)
             .await
             .unwrap();
     }
@@ -85,10 +88,10 @@ mod test{
         // build our application with a single route
         let app = Router::new().route("/", get(|| async { "Hello, World!" }));
 
-        // run it with hyper on localhost:3000
-        axum::Server::bind(&"0.0.0.0:8899".parse().unwrap())
-            .serve(app.into_make_service())
+        let listener=tokio::net::TcpListener::bind("0.0.0.0:8899").await.unwrap();
+        axum::serve(listener, app)
             .await
             .unwrap();
     }
+
 }

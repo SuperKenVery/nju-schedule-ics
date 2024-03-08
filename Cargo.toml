@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 aes = "0.8.3"
 anyhow = { version = "1.0.75", features = ["backtrace"] }
-axum = "0.6.20"
-axum-macros = "0.3.8"
-base64 = "0.21.2"
+axum = "0.7.4"
+axum-macros = "0.4.1"
+base64 = "0.22.0"
 cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
 clap = { version = "4.4.2", features = ["derive"] }
@@ -16,10 +16,10 @@ ics = "0.5.8"
 json = "0.12.4"
 reqwest = { version = "0.11.18", features = ["cookie_store", "cookies"] }
 reqwest-middleware = "0.2.3"
-reqwest-retry = "0.2.3"
+reqwest-retry = "0.3.0"
 serde = { version = "1.0.188", features = ["derive"] }
 sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio"] }
 tl = "0.7.7"
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
-toml = "0.7.6"
+toml = "0.8.10"
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
