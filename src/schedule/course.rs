@@ -69,14 +69,16 @@ impl Course {
         let times=time.split("##").into_iter()
             .map(|time| {
                 // Weekday
-                let [weekday, time, weeks, _location]=time.split(" ").collect::<Vec<&str>>()[..] else {
+                let time_splitted=time.split(" ").collect::<Vec<_>>();
+                let [weekday, time, weeks, _location]=time_splitted
+                    .get(..).ok_or(anyhow!("Failed to parse time: {}", time))? else {
                     return Err(anyhow!("Invalid time str: {:?}",time));
                 };
 
                 if weekday.contains("自由时间"){
                     return Ok(vec![]);
                 }
-                let weekday: Result<u8, anyhow::Error>=match weekday {
+                let weekday: Result<u8, anyhow::Error>=match weekday.to_owned() {
                     "周一" => Ok(1),
                     "周二" => Ok(2),
                     "周三" => Ok(3),
@@ -84,7 +86,7 @@ impl Course {
                     "周五" => Ok(5),
                     "周六" => Ok(6),
                     "周日" => Ok(7),
-                    _ => Err("Invalid weekday").map_err(anyhow::Error::msg),
+                    _ => Err(anyhow!("Invalid weekday: {}", weekday)),
                 };
                 let weekday=weekday?;
 
@@ -92,20 +94,33 @@ impl Course {
                 let weeks=if weeks.contains("-"){
                     // Chinese character takes 3 bytes
                     let (weeks, cond): (&str, Box<dyn Fn(u8) -> bool>) = if weeks.contains("(双)"){
-                        (&weeks[..weeks.len()-5], Box::new(|week| week%2==0))
+                        (
+                            weeks.get(..weeks.len()-5).ok_or(anyhow!("Failed to pass weeks: {}", weeks))?,
+                            Box::new(|week| week%2==0)
+                        )
                     }else if weeks.contains("(单)"){
-                        (&weeks[..weeks.len()-5], Box::new(|week| week%2==1))
+                        (
+                            weeks.get(..weeks.len()-5).ok_or(anyhow!("Failed to pass weeks: {}", weeks))?,
+                            Box::new(|week| week%2==1)
+                        )
                     }else{
-                        (&weeks[..], Box::new(|_| true))
+                        (
+                            weeks,
+                            Box::new(|_| true)
+                        )
                     };
 
-                    let weeks=&weeks[0..weeks.len()-3];
-                    let [start, end]=weeks
+                    let weeks=weeks.get(0..weeks.len()-3)
+                        .ok_or(anyhow!("Failed to parse weeks: {}", weeks))?;
+                    let weeks_splitted=weeks
                         .split("-")
                         .map(|week| week.parse::<u8>())
-                        .collect::<Result<Vec<_>,ParseIntError>>()?[..] else{
+                        .collect::<Result<Vec<_>,ParseIntError>>()?;
+                    let [start, end]=weeks_splitted.get(..)
+                        .ok_or(anyhow!("Failed to get week range: {:?}", weeks))? else{
                             return Err("Invalid week range str").map_err(anyhow::Error::msg);
                         };
+                    let [start, end] = [start.to_owned(), end.to_owned()];
                     let weeks=(start..=end)
                         .filter(|week| cond(*week))
                         .collect::<Vec<u8>>();
@@ -113,14 +128,18 @@ impl Course {
                 }else{
                     weeks
                         .split("|")
-                        .map(|weekstr| &weekstr[..weekstr.len()-3])
-                        .map(|week| week.parse::<u8>())
-                        .collect::<Result<Vec<_>,ParseIntError>>()?
+                        .map(|weekstr|
+                            weekstr.get(..weekstr.len()-3)
+                                .ok_or(anyhow!("Failed to parse weeks: {}", weekstr))
+                        )
+                        .collect::<Result<Vec<_>,_>>()?
+                        .iter().map(|week| week.parse::<u8>())
+                        .collect::<Result<Vec<u8>,ParseIntError>>()?
                 };
 
                 // Time
                 // Remove the last character, which is "节" (takes 3 bytes)
-                let time=&time[..time.len()-3];
+                let time=time.get(..time.len()-3).ok_or(anyhow!("Failed to remove 节 character: {}", time))?;
 
                 let [start, end]=time.split("-")
                     .map(|time| {
