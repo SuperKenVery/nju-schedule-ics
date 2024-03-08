@@ -120,7 +120,7 @@ pub async fn get_style_css() -> Result<impl IntoResponse, super::error::AppError
 #[debug_handler]
 pub async fn redirect_to_nojs() -> Result<impl IntoResponse, super::error::AppError> {
     let mut headers=HeaderMap::new();
-    headers.insert(header::LOCATION, "/nojs/index".try_into()?);
+    headers.insert(header::LOCATION, "./nojs/index".try_into()?);
 
     Ok(
         (
