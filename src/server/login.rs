@@ -60,7 +60,11 @@ pub async fn finish_login(
 ) -> Result<impl IntoResponse,AppError>{
     let auth=&mut state.auth.lock().await;
     let op=auth.sessions.get(&session).ok_or("Invalid session").map_err(anyhow::Error::msg)?;
-    let cred=op.finish(&username, &password, &captcha_answer).await?;
+    let cred=op.finish(&username, &password, &captcha_answer).await;
+    let Ok(cred)=cred else{
+        auth.sessions.remove(&session);
+        return Err(cred.expect_err("").into());
+    };
     let LoginOperation::Done(cred)=cred else{
         Err("The LoginOperation after finish() isn't done").map_err(anyhow::Error::msg)?
     };
