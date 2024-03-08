@@ -2,10 +2,9 @@
 // Enable `?` error handling on handlers
 
 use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
+    http::{Response, StatusCode},
+    response::IntoResponse,
 };
-use reqwest::{header, header::HeaderMap};
 
 use anyhow::Error;
 
@@ -15,23 +14,21 @@ pub struct AppError(Error);
 
 // Tell axum how to convert `AppError` into a response.
 impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
+    fn into_response(self) -> Response<axum::body::Body> {
         println!("Error: {:?}", self.0);
 
         let err=include_str!("../html/error.html");
         let err=err.replace("ERROR",self.0.to_string().as_str());
 
-        let mut headers=HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "text/html".try_into().unwrap());
-
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            headers,
-            err,
-        )
-            .into_response()
+        Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header("Content-Type", "text/html; charset=utf-8")
+            .body(err.to_string().into())
+            .unwrap()
     }
 }
+
+
 
 // This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
 // `Result<_, AppError>`. That way you don't need to do that manually.

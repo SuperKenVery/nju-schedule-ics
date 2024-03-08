@@ -186,7 +186,7 @@ impl LoginOperation {
         let response_text = login_response.text().await?;
         let resp = unsafe { tl::parse_owned(response_text, tl::ParserOptions::default()) }?;
         let doc = resp.get_ref();
-        let reason = doc.get_element_by_id("msg1");
+        let reason = doc.get_element_by_id("msg");
         let Some(reason)=reason else{
             return Err("No CASTGC, cannot load reason").map_err(anyhow::Error::msg);
         };
