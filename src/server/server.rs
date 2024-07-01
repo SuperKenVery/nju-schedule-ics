@@ -69,7 +69,7 @@ mod test{
     async fn start_server() {
         let db=db::CookieDb::new("sqlite://cookies.sqlite").await.unwrap();
 
-        let app=build_app(db,"http://localhost:8999".into()).await.unwrap();
+        let app=build_app(db).await.unwrap();
 
         println!("Starting server...");
 

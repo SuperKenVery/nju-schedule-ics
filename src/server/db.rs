@@ -1,5 +1,5 @@
 use sqlx::sqlite::{SqliteConnectOptions,SqlitePool, SqlitePoolOptions};
-use std::{hash::Hash, str::FromStr, collections::HashMap};
+use std::{str::FromStr, collections::HashMap};
 use uuid::Uuid;
 use crate::nju::login::{LoginOperation, LoginCredential};
 
