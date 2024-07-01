@@ -1,12 +1,15 @@
-// Use redis with its persistence feature as the db
-
-// use redis::{Client,AsyncCommands};
 use sqlx::sqlite::{SqliteConnectOptions,SqlitePool, SqlitePoolOptions};
-use std::str::FromStr;
+use std::{hash::Hash, str::FromStr, collections::HashMap};
+use uuid::Uuid;
+use crate::nju::login::{LoginOperation, LoginCredential};
 
 pub struct CookieDb{
-    // connection: redis::aio::Connection,
     pool: SqlitePool,
+
+    // We only store new login operations.
+    // For completed logins, we directly fetch its
+    // cookie from sqlite database.
+    login_ops: HashMap<String, LoginOperation>,
 }
 
 impl CookieDb {
@@ -29,10 +32,12 @@ impl CookieDb {
             .execute(&pool)
             .await?;
 
-        Ok(CookieDb { pool })
+        let login_ops=HashMap::new();
+
+        Ok(CookieDb { pool, login_ops })
     }
 
-    pub async fn insert<K,V>(&mut self, key: K, value: V) -> Result<(),anyhow::Error>
+    async fn insert<K,V>(&mut self, key: K, value: V) -> Result<(),anyhow::Error>
     where
         K: ToString,
         V: ToString,
@@ -49,7 +54,7 @@ impl CookieDb {
 
     }
 
-    pub async fn get<K>(&mut self, key: K) -> Result<Option<String>,anyhow::Error>
+    async fn get<K>(&self, key: K) -> Result<Option<String>,anyhow::Error>
     where
         K: ToString,
     {
@@ -63,16 +68,62 @@ impl CookieDb {
         if let Some(row)=row {
             Ok(Some(row.0))
         } else {
-            Err(anyhow::Error::msg("Not found"))
+            Ok(None)
         }
     }
 
-    pub async fn get_all(&self) -> Result<Vec<(String,String)>,anyhow::Error> {
+    async fn get_all(&self) -> Result<Vec<(String,String)>,anyhow::Error> {
         let rows: Vec<(String,String)> = sqlx::query_as("SELECT key, value FROM castgc")
             .fetch_all(&self.pool)
             .await?;
 
         Ok(rows)
+    }
+
+    pub async fn new_session(&mut self) -> Result<String,anyhow::Error> {
+        let mut session=Uuid::new_v4().to_string();
+
+        while let Ok(Some(_))=self.get(&session).await {
+            // UUID collision
+            session=Uuid::new_v4().to_string();
+        }
+
+        let o=LoginOperation::start().await?;
+        self.login_ops.insert(session.clone(), o);
+
+        Ok(session)
+    }
+
+    pub async fn get_session_captcha(&self, session: &str) -> Result<Vec<u8>,anyhow::Error> {
+        if let LoginOperation::WaitingVerificationCode{
+            captcha,client: _,context: _
+        } = self.login_ops.get(session).ok_or_else(|| anyhow::anyhow!("No such session"))? {
+            Ok(captcha.clone())
+        } else {
+            Err(anyhow::anyhow!("Session is not waiting for verification code"))
+        }
+    }
+
+    pub async fn session_login(&mut self, session: &str, username: &str, password: &str, captcha_answer: &str) -> Result<(),anyhow::Error> {
+        let o=self.login_ops.get_mut(session).ok_or_else(|| anyhow::anyhow!("No such session"))?;
+        let o=o.finish(username,password,captcha_answer).await?;
+
+        if let LoginOperation::Done(cred)=o {
+            self.insert(session, cred.castgc).await?;
+            self.login_ops.remove(session);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("LoginOperation is not Done after finish()"))
+        }
+    }
+
+    pub async fn get_cred(&self, session: &str) -> Option<LoginCredential> {
+        let castgc=self
+            .get(session)
+            .await
+            .ok()??;
+
+        Some(LoginCredential::new(castgc))
     }
 
 

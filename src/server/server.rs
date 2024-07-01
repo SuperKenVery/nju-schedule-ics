@@ -14,16 +14,12 @@ use super::subscription::get_ical;
 use super::db;
 
 pub struct AppState {
-    pub auth: Mutex<login::Authenticator>,
     pub cookie_db: Mutex<CookieDb>,
-    pub site_url: String,       // e.g. http://localhost:8999   No trailing slash
 }
 
-pub async fn build_app(db: db::CookieDb, server_url: String) -> Result<Router,anyhow::Error> {
+pub async fn build_app(db: db::CookieDb) -> Result<Router,anyhow::Error> {
     let state=Arc::new(AppState{
-        auth: Mutex::new(login::Authenticator::new(&db).await?),
         cookie_db: Mutex::new(db),
-        site_url: server_url,
     });
 
 

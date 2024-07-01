@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::IntoResponse;
 use axum::{extract::State, body::Bytes, extract::Path};
@@ -15,10 +16,10 @@ pub async fn get_ical(
 ) -> Result<impl IntoResponse,AppError> {
     let cookie_db=&mut state.cookie_db.lock().await;
     let uuid=uuid.to_string();
-    let castgc=cookie_db
-        .get(&uuid).await?
-        .ok_or("Invalid session").map_err(anyhow::Error::msg)?;
-    let cred=LoginCredential::new(castgc);
+    let cred=cookie_db
+        .get_cred(&uuid)
+        .await
+        .ok_or(anyhow!("Invalid UUID"))?;
     let cal=crate::schedule::calendar::Calendar::from_login(cred.clone()).await?;
     let cal=cal.to_bytes()?;
 

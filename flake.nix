@@ -42,7 +42,13 @@
           cargo
           # pkg-config
           # openssl
-        ];
+        ] ++
+        (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
+          SystemConfiguration
+        ])) ++
+        (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
+          openssl
+        ]));
         RUST_SRC_PATH = "${
           rustToolchain.${pkgs.system}.rust-src
         }/lib/rustlib/src/rust/library";
