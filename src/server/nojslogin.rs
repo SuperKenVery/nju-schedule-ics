@@ -3,7 +3,7 @@ use super::server::AppState;
 
 use axum::{
     extract::{Form, State},
-    http::{header, status::StatusCode, HeaderMap, Uri},
+    http::{header, status::StatusCode, HeaderMap},
     response::IntoResponse,
 };
 use axum_macros::debug_handler;
@@ -38,7 +38,6 @@ pub struct LoginForm {
 pub async fn login(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    uri: Uri,
     Form(LoginForm{username,password,captcha_answer}): Form<LoginForm>,
 ) -> Result<impl IntoResponse, AppError> {
 
@@ -70,17 +69,12 @@ pub async fn login(
     db.session_login(session, &username, &password, &captcha_answer)
         .await?;
 
-    let site_url=format!(
-        "webcal://{}{}",
-        headers.get("Host").ok_or(anyhow::anyhow!("No Host header"))?.to_str()?,
-        uri.path()
-    );
     let subscription_html = include_str!("../html/subscription.html");
     let subscription_html = subscription_html.replace(
         "SUBSCRIPTION_LINK",
         format!(
             "{}/{}/schedule.ics",
-            site_url.replace("/nojs/login", ""),
+            state.site_url.replace("https://", "webcal://"),
             session
         )
         .as_str(),

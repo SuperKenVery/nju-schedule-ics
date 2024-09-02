@@ -20,6 +20,7 @@ struct Args{
 pub struct Config{
     pub db_path: String,
     pub listen_addr: String,
+    pub site_url: String,
 }
 
 pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
@@ -34,7 +35,7 @@ pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
 
             Ok(
                 (
-                    build_app(db).await?,
+                    build_app(db, config.site_url.clone()).await?,
                     config,
                 )
             )
@@ -47,6 +48,11 @@ pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
 # The path to SQLite database
 # which stores cookies
 db_path="./cookies.sqlite"
+
+# The URL this site is hosted
+# No trailing slash
+# Must start with https://
+site_url="https://example.com/sub_dir"
 
 # Listen address&port
 # This is different from site_url, as you'll probably

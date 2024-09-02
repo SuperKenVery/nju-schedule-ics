@@ -15,11 +15,13 @@ use super::db;
 
 pub struct AppState {
     pub cookie_db: Arc<Mutex<CookieDb>>,
+    pub site_url: String,
 }
 
-pub async fn build_app(db: Arc<Mutex<db::CookieDb>>) -> Result<Router,anyhow::Error> {
+pub async fn build_app(db: Arc<Mutex<db::CookieDb>>, site_url: String) -> Result<Router,anyhow::Error> {
     let state=Arc::new(AppState{
         cookie_db: db.clone(),
+        site_url,
     });
 
 
@@ -70,7 +72,7 @@ mod test{
         let db=db::CookieDb::new("sqlite://cookies.sqlite").await.unwrap();
         let db=Arc::new(Mutex::new(db));
 
-        let app=build_app(db).await.unwrap();
+        let app=build_app(db, "https://localhost:8899".to_string()).await.unwrap();
 
         println!("Starting server...");
 
