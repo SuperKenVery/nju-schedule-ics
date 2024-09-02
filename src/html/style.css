@@ -46,11 +46,9 @@ html,body {
 #input-container {
     z-index: 0;
     width: 50%;
-    height: 40%;
     min-width: 300px;
     max-width: 500px;
-    min-height: 330px;
-    max-height: 350px;
+    height: 350px;
 }
 
 #input-form {
@@ -65,7 +63,6 @@ html,body {
         "captcha captcha_img"
         "login login";
     gap: 10px;
-    margin-block-end: 20px;
 }
 
 #login-button, #home-link {
@@ -93,6 +90,11 @@ html,body {
 }
 #login-button{
     grid-area: login;
+}
+#declaration_div{
+    width: 85%;
+    margin-block-end: 20px;
+    margin-block-start: 10px;
 }
 
 .info {
