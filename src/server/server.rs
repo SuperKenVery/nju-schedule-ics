@@ -12,7 +12,6 @@ use super::{
 };
 use super::subscription::get_ical;
 use super::db;
-use cronjob;
 
 pub struct AppState {
     pub cookie_db: Arc<Mutex<CookieDb>>,

@@ -72,7 +72,7 @@
           src = (pkgs.lib.cleanSource ./.);
         } ;
 
-        cargoSha256 = "sha256-T0StqfNVn7L+99V/X7FO4nDL9DEQzzYbuFfXYcYabXE=";
+        cargoSha256 = "sha256-7to6FRK9WhyNgAzIaX65icrzrv6jU8I20reSuIjOM2c=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
@@ -100,6 +100,6 @@
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
       checks = nixpkgs.lib.getAttrs [ "x86_64-linux" "x86_64-darwin" ] self.packages;
-      };
+    };
   };
 }
