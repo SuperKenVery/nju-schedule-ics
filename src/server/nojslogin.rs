@@ -80,7 +80,7 @@ pub async fn login(
         "SUBSCRIPTION_LINK",
         format!(
             "{}/{}/schedule.ics",
-            site_url,
+            site_url.replace("/nojs/login", ""),
             session
         )
         .as_str(),
