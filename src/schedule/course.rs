@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use json;
 use json::JsonValue::Array as jsonArray;
 use super::time::{TimeSpan, CourseTime};
-use std::num::ParseIntError;
 
 #[derive(Debug)]
 pub struct Course {
@@ -15,24 +14,24 @@ pub struct Course {
 
 impl Course {
     pub fn from_json(raw: json::JsonValue) -> Result<Self, anyhow::Error> {
-        let notes=raw["SKSM"].as_str();
-        let notes=if let Some(notes)=notes{
-            format!("{}\n", notes)
-        }else{
-            "".to_string()
+        // Notes
+        let line_or_empty=|key: &str| {
+            let content=raw[key].as_str();
+
+            if let Some(content)=content{
+                format!("{}\n", content)
+            }else{
+                "".to_string()
+            }
         };
-        let swaps=raw["TKJG"].as_str();
-        let swaps=if let Some(swaps)=swaps{
-            format!("{}\n", swaps)
-        }else{
-            "".to_string()
-        };
-        let final_exam=raw["QMKSXX"].as_str();
-        let final_exam=if let Some(final_exam)=final_exam{
-            format!("{}\n", final_exam)
-        }else{
-            "".to_string()
-        };
+        let notes=line_or_empty("SKSM");
+        let swaps=line_or_empty("TKJG");
+        let final_exam=line_or_empty("QMKSXX");
+        let class=line_or_empty("JXBMC");
+        let teacher=line_or_empty("JSHS");
+        let points=line_or_empty("XF");
+
+        // Name and location
         let name=raw["KCM"].as_str()
             .ok_or("Cannot extract name").map_err(anyhow::Error::msg)?;
         let location=raw["JASMC"]
@@ -40,127 +39,33 @@ impl Course {
             .unwrap_or("")      // 比如阅读课就会没有这个字段
             .replace("（合班）", "");
 
-        let time=raw["ZCXQJCDD"].as_str
-        ()
-            .ok_or("Cannot extract time").map_err(anyhow::Error::msg)?;
-        /* Example data:
-         * 周三 2-4节 1-17周 仙Ⅱ-211,周五 3-4节 1-17周 仙Ⅱ-211
-         * 自由时间 0-0节 7-17周 自由地点
-         * 周五 7-8节 3周,7周,11周,15周 仙Ⅰ-108
-         * 周四 3-4节 1-17周 仙Ⅱ-212,周四 9-10节 1-17周 基础实验楼乙124,125,周一 3-4节 1-17周 仙Ⅱ-212
-         * 周三 3-4节 2-16周(双)
-         */
-        let time=time.replace("周,", "周|");
-        /* Now they are:
-         * 周三 2-4节 1-17周 仙Ⅱ-211,周五 3-4节 1-17周 仙Ⅱ-211
-         * 自由时间 0-0节 7-17周 自由地点
-         * 周五 7-8节 3周|7周|11周|15周 仙Ⅰ-108
-         * 周四 3-4节 1-17周 仙Ⅱ-212,周四 9-10节 1-17周 基础实验楼乙124,125,周一 3-4节 1-17周 仙Ⅱ-212
-         * 周三 3-4节 2-16周(双)
-         */
-        let time=time.replace(",周","##周");
-        /* Now they are:
-         * 周三 2-4节 1-17周 仙Ⅱ-211##周五 3-4节 1-17周 仙Ⅱ-211
-         * 自由时间 0-0节 7-17周 自由地点
-         * 周五 7-8节 3周|7周|11周|15周 仙Ⅰ-108
-         * 周四 3-4节 1-17周 仙Ⅱ-212##周四 9-10节 1-17周 基础实验楼乙124,125##周一 3-4节 1-17周 仙Ⅱ-212
-         * 周三 3-4节 2-16周(双)
-         */
-        let times=time.split("##").into_iter()
-            .map(|time| {
-                // Weekday
-                let time_splitted=time.split(" ").collect::<Vec<_>>();
-                let [weekday, time, weeks, _location]=time_splitted
-                    .get(..).ok_or(anyhow!("Failed to parse time: {}", time))? else {
-                    return Err(anyhow!("Invalid time str: {:?}",time));
-                };
+        // Time
+        let start=raw["KSJC"].as_str()
+                    .ok_or("Cannot extract start time").map_err(anyhow::Error::msg)?.parse::<u8>()?;
+        let end=raw["JSJC"].as_str()
+            .ok_or("Cannot extract end time").map_err(anyhow::Error::msg)?.parse::<u8>()?;
+        let weekday=raw["SKXQ"].as_str()
+            .ok_or("Cannot extract weekday").map_err(anyhow::Error::msg)?.parse::<u8>()?;
 
-                if weekday.contains("自由时间"){
-                    return Ok(vec![]);
-                }
-                let weekday: Result<u8, anyhow::Error>=match weekday.to_owned() {
-                    "周一" => Ok(1),
-                    "周二" => Ok(2),
-                    "周三" => Ok(3),
-                    "周四" => Ok(4),
-                    "周五" => Ok(5),
-                    "周六" => Ok(6),
-                    "周日" => Ok(7),
-                    _ => Err(anyhow!("Invalid weekday: {}", weekday)),
-                };
-                let weekday=weekday?;
+        let weeks=raw["SKZC"].as_str()
+            .ok_or("Cannot extract weeks").map_err(anyhow::Error::msg)?;
+        let times=if start!=0{
+            weeks.chars().enumerate()
+            .map(|(i, c)| (i, c))
+            .filter(|(_, c)| *c=='1')
+            .map(|(i, _c)| {
+                let week=i+1;
 
-                // Weeks
-                let weeks=if weeks.contains("-"){
-                    // Chinese character takes 3 bytes
-                    let (weeks, cond): (&str, Box<dyn Fn(u8) -> bool>) = if weeks.contains("(双)"){
-                        (
-                            weeks.get(..weeks.len()-5).ok_or(anyhow!("Failed to pass weeks: {}", weeks))?,
-                            Box::new(|week| week%2==0)
-                        )
-                    }else if weeks.contains("(单)"){
-                        (
-                            weeks.get(..weeks.len()-5).ok_or(anyhow!("Failed to pass weeks: {}", weeks))?,
-                            Box::new(|week| week%2==1)
-                        )
-                    }else{
-                        (
-                            weeks,
-                            Box::new(|_| true)
-                        )
-                    };
-
-                    let weeks=weeks.get(0..weeks.len()-3)
-                        .ok_or(anyhow!("Failed to parse weeks: {}", weeks))?;
-                    let weeks_splitted=weeks
-                        .split("-")
-                        .map(|week| week.parse::<u8>())
-                        .collect::<Result<Vec<_>,ParseIntError>>()?;
-                    let [start, end]=weeks_splitted.get(..)
-                        .ok_or(anyhow!("Failed to get week range: {:?}", weeks))? else{
-                            return Err("Invalid week range str").map_err(anyhow::Error::msg);
-                        };
-                    let [start, end] = [start.to_owned(), end.to_owned()];
-                    let weeks=(start..=end)
-                        .filter(|week| cond(*week))
-                        .collect::<Vec<u8>>();
-                    weeks
-                }else{
-                    weeks
-                        .split("|")
-                        .map(|weekstr|
-                            weekstr.get(..weekstr.len()-3)
-                                .ok_or(anyhow!("Failed to parse weeks: {}", weekstr))
-                        )
-                        .collect::<Result<Vec<_>,_>>()?
-                        .iter().map(|week| week.parse::<u8>())
-                        .collect::<Result<Vec<u8>,ParseIntError>>()?
-                };
-
-                // Time
-                // Remove the last character, which is "节" (takes 3 bytes)
-                let time=time.get(..time.len()-3).ok_or(anyhow!("Failed to remove 节 character: {}", time))?;
-
-                let [start, end]=time.split("-")
-                    .map(|time| {
-                        let time=time.parse::<u8>()?;
-                        let time=TimeSpan::from_course_index(time);
-                        time
-                    })
-                    .collect::<Result<Vec<_>,anyhow::Error>>()?[..] else{
-                        return Err("Invalid time range str").map_err(anyhow::Error::msg);
-                    };
-
-                Ok(weeks.iter().map(|week|{
-                    CourseTime::new(
-                        TimeSpan::new(start.start,end.end),
-                        weekday,
-                        *week,
-                    )
-                }).collect::<Vec<_>>())
+                Ok(CourseTime::new(
+                    TimeSpan::from_course_index_range(start, end)?,
+                    weekday,
+                    week as u8,
+                ))
             })
-            .collect::<Result<Vec<Vec<CourseTime>>,_>>()?
-            .concat();
+            .collect::<Result<Vec<_>,anyhow::Error>>()?
+        }else{  // 自由时间的课程，开始结束会设为0
+            vec![]
+        };
 
         Ok(
             Self {
@@ -208,8 +113,9 @@ mod test{
             panic!("Not an array??");
         };
         for c in rows{
-            let course=Course::from_json(c.clone()).unwrap();
+            let course=Course::from_json(c.clone());
             println!("{:#?}", course);
+            let _course=course.unwrap();
         }
     }
 

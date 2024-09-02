@@ -52,6 +52,13 @@ impl TimeSpan {
             _ => Err("Invalid time").map_err(anyhow::Error::msg),
         }
     }
+
+    pub fn from_course_index_range(start: u8, end: u8) -> Result<TimeSpan, anyhow::Error> {
+        let start=Self::from_course_index(start)?;
+        let end=Self::from_course_index(end)?;
+
+        Ok(TimeSpan::new(start.start,end.end))
+    }
 }
 
 #[derive(Clone)]
