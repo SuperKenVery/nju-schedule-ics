@@ -1,8 +1,8 @@
 use axum::{
     routing::{get, post}, Router
 };
-use tokio::sync::Mutex;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use super::{
     login,
@@ -12,14 +12,15 @@ use super::{
 };
 use super::subscription::get_ical;
 use super::db;
+use cronjob;
 
 pub struct AppState {
-    pub cookie_db: Mutex<CookieDb>,
+    pub cookie_db: Arc<Mutex<CookieDb>>,
 }
 
-pub async fn build_app(db: db::CookieDb) -> Result<Router,anyhow::Error> {
+pub async fn build_app(db: Arc<Mutex<db::CookieDb>>) -> Result<Router,anyhow::Error> {
     let state=Arc::new(AppState{
-        cookie_db: Mutex::new(db),
+        cookie_db: db.clone(),
     });
 
 
@@ -68,6 +69,7 @@ mod test{
     #[tokio::test]
     async fn start_server() {
         let db=db::CookieDb::new("sqlite://cookies.sqlite").await.unwrap();
+        let db=Arc::new(Mutex::new(db));
 
         let app=build_app(db).await.unwrap();
 

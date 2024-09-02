@@ -27,9 +27,13 @@ impl Course {
         let notes=line_or_empty("SKSM");
         let swaps=line_or_empty("TKJG");
         let final_exam=line_or_empty("QMKSXX");
+        let final_exam=format!("期末考试 {}\n", final_exam);
         let class=line_or_empty("JXBMC");
         let teacher=line_or_empty("JSHS");
-        let points=line_or_empty("XF");
+        let dbg=&raw["XF"];
+        println!("{:?}, val {}", dbg.as_number(), Into::<f32>::into(dbg.as_number().unwrap()));
+        let points=Into::<f32>::into(raw["XF"].as_number().ok_or(anyhow!("Cannot extract points"))?);
+        let points=format!("{}学分\n", points);
 
         // Name and location
         let name=raw["KCM"].as_str()
@@ -71,7 +75,7 @@ impl Course {
             Self {
                 name: name.to_string(),
                 location: location.to_string(),
-                notes: format!("{}{}{}", notes, swaps, final_exam),
+                notes: format!("{}{}{}{}{}{}", notes, class, teacher, points, swaps, final_exam),
                 time: times,
             }
         )

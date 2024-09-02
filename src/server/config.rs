@@ -5,6 +5,8 @@ use super::error::AppError;
 use super::server::build_app;
 use toml;
 use super::db;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Parser,Debug)]
 #[command(author,version,about,long_about=None)]
@@ -28,6 +30,7 @@ pub async fn parse_config(path: &str) -> Result<(Router,Config),AppError> {
             let config: Config=toml::from_str(&config)?;
 
             let db=db::CookieDb::new(&config.db_path).await?;
+            let db=Arc::new(Mutex::new(db));
 
             Ok(
                 (
