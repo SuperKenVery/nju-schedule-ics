@@ -69,7 +69,7 @@ cargo run -- --config config.toml
 cachix use superkenvery
 ```
 
-目前只维护了 `aarch64-darwin`和 `aarch64-linux`的cache。
+目前GitHub Actions会生成`x86_64-linux`和`x86_64-darwin`的cache，我有时会推送 `aarch64-darwin`和 `aarch64-linux`的cache。
 
 ### 配置文件
 
