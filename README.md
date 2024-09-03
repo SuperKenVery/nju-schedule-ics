@@ -20,7 +20,8 @@
 
 登陆界面：
 
-<img width="915" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/9d3a7dad-d1a1-4bbe-8e05-8246329e8289">
+<img width="915" alt="Login" src="https://github.com/user-attachments/assets/f5bd31f0-9169-4d90-ae64-8d89de65bd62">
+
 
 ## 使用提供的服务器
 
