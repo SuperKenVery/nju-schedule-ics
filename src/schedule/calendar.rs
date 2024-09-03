@@ -1,11 +1,10 @@
 /* Generate iCalendar file (.ics) from Course */
 use super::course::Course;
-use ics::{Event as oriEvent, ICalendar,
-    properties::{Geo, DtStart, DtEnd, Location, Summary, Description}, components::Property
+use ics::{components::{Parameter, Property}, parameters::TzIDParam, properties::{Description, DtEnd, DtStart, Geo, Location, Summary, TzID}, Event as oriEvent, ICalendar
 };
 use chrono::{DateTime, TimeZone, Local, LocalResult};
 use uuid::Uuid;
-use std::ops::Deref;
+use std::{ops::Deref, os::unix::raw::time_t};
 use super::location::get_geolocation;
 use crate::nju::login::LoginCredential;
 use crate::nju::getcourse;
@@ -24,20 +23,26 @@ impl<'a> Event<'a> {
                 chrono::Utc::now().format(TIME_FMT).to_string()
             );
 
-            let geo=get_geolocation(&course.location);
             event.push(Summary::new(course.name.clone()));
+
+            let geo=get_geolocation(&course.location);
             event.push(Location::new(format!("{}\\n南京大学", course.location)));
             if let Some(geo)=geo{
                 event.push(Geo::new(geo.to_ical_str()));
-                event.push(Property::new(
-                    format!("X-APPLE-STRUCTURED-LOCATION;X-ADDRESS=南京大学;X-TITLE={}",course.location),
-                    geo.to_apple_location_str()
-                ))
+                let mut apple_addr=Property::new("X-APPLE-STRUCTURED-LOCATION", geo.to_apple_location_str());
+                apple_addr.add(Parameter::new("X-ADDRESS", "南京大学"));
+                apple_addr.add(Parameter::new("X-TITLE", course.location.clone()));
+                event.push(apple_addr);
             }
 
             let (start,end)=time.to_datetime(first_week_start)?;
-            event.push(DtStart::new(start.format(TIME_FMT).to_string()));
-            event.push(DtEnd::new(end.format(TIME_FMT).to_string()));
+            let tz=TzIDParam::new("/Etc/GMT-8");
+            let mut start=DtStart::new(start.format(TIME_FMT).to_string());
+            start.add(tz.clone());
+            let mut end=DtEnd::new(end.format(TIME_FMT).to_string());
+            end.add(tz.clone());
+            event.push(start);
+            event.push(end);
 
             if course.notes.is_empty() == false{
                 event.push(Description::new(course.notes.clone().replace("\n", "\\n")));
