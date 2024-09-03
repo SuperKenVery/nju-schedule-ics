@@ -26,16 +26,14 @@ impl Course {
         };
         let notes = line_or_empty("SKSM");
         let swaps = line_or_empty("TKJG");
-        let final_exam = line_or_empty("QMKSXX");
-        let final_exam = format!("期末考试 {}\n", final_exam);
+        let final_exam = raw["QMKSXX"].as_str();
+        let final_exam = if let Some(fexinfo) = final_exam {
+            format!("期末考试 {}\n", fexinfo)
+        } else {
+            "".to_string()
+        };
         let class = line_or_empty("JXBMC");
         let teacher = line_or_empty("JSHS");
-        let dbg = &raw["XF"];
-        println!(
-            "{:?}, val {}",
-            dbg.as_number(),
-            Into::<f32>::into(dbg.as_number().unwrap())
-        );
         let points = Into::<f32>::into(
             raw["XF"]
                 .as_number()

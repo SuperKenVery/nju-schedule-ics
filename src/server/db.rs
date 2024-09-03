@@ -154,14 +154,6 @@ impl CookieDb {
     }
 
     pub async fn get_cred(&self, session: &str) -> Option<LoginCredential> {
-        let dbg = self.get(session).await;
-        println!("state: {:?}", dbg);
-        if let Err(gerr) = dbg {
-            let msg = gerr.source().unwrap().to_string();
-            eprintln!("Error in get_cred: {:?}", gerr.source());
-            println!("{:?}", msg);
-        }
-
         let castgc = self.get(session).await.ok()??;
 
         Some(LoginCredential::new(castgc))

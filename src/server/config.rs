@@ -59,7 +59,7 @@ listen_addr="0.0.0.0:8899"
                     .trim(),
                 );
                 if let Err(e) = result {
-                    println!("Failed to write default config file: {}", e)
+                    eprintln!("Failed to write default config file: {}", e)
                 }
             }
 
