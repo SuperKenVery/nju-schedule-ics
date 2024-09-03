@@ -38,9 +38,12 @@ pub struct LoginForm {
 pub async fn login(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Form(LoginForm{username,password,captcha_answer}): Form<LoginForm>,
+    Form(LoginForm {
+        username,
+        password,
+        captcha_answer,
+    }): Form<LoginForm>,
 ) -> Result<impl IntoResponse, AppError> {
-
     let cookies = headers
         .get("cookie")
         .ok_or("No cookie")

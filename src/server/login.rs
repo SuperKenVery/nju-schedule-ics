@@ -1,36 +1,31 @@
-
-
 use axum::response::IntoResponse;
-use axum::{Json, extract::State, extract::Form
-};
+use axum::{extract::Form, extract::State, Json};
 use axum_macros::debug_handler;
 
-use serde::{Serialize,Deserialize};
-use super::server::AppState;
-use std::sync::Arc;
 use super::error::AppError;
+use super::server::AppState;
 use base64::{engine::general_purpose::STANDARD as base64, Engine};
-
-
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 // Get captcha content
 #[derive(Serialize)]
-pub struct LoginStage1Response{
+pub struct LoginStage1Response {
     session: String,
     captcha_content: String,
 }
 
 #[debug_handler]
 pub async fn new_login_session(
-    State(state): State<Arc<AppState>>
-) -> Result<Json<LoginStage1Response>,AppError> {
-    let mut db=state.cookie_db.lock().await;
-    let session=db.new_session().await?;
-    let captcha=db.get_session_captcha(&session).await?;
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<LoginStage1Response>, AppError> {
+    let mut db = state.cookie_db.lock().await;
+    let session = db.new_session().await?;
+    let captcha = db.get_session_captcha(&session).await?;
 
-    let captcha_base64=base64.encode(captcha);
+    let captcha_base64 = base64.encode(captcha);
 
-    Ok(Json(LoginStage1Response{
+    Ok(Json(LoginStage1Response {
         session,
         captcha_content: captcha_base64,
     }))
@@ -38,7 +33,7 @@ pub async fn new_login_session(
 
 // Send username and password
 #[derive(Deserialize)]
-pub struct LoginStage2Request{
+pub struct LoginStage2Request {
     session: String,
     username: String,
     password: String,
@@ -46,23 +41,25 @@ pub struct LoginStage2Request{
 }
 
 #[derive(Serialize)]
-pub struct LoginStage2Response{
+pub struct LoginStage2Response {
     uuid: String,
 }
 
 #[debug_handler]
 pub async fn finish_login(
     State(state): State<Arc<AppState>>,
-    Form(LoginStage2Request{session,username,password,captcha_answer}): Form<LoginStage2Request>,
-) -> Result<impl IntoResponse,AppError>{
-    let mut db=state.cookie_db.lock().await;
-    db.session_login(&session, &username, &password, &captcha_answer).await?;
+    Form(LoginStage2Request {
+        session,
+        username,
+        password,
+        captcha_answer,
+    }): Form<LoginStage2Request>,
+) -> Result<impl IntoResponse, AppError> {
+    let mut db = state.cookie_db.lock().await;
+    db.session_login(&session, &username, &password, &captcha_answer)
+        .await?;
 
-    Ok(
-        Json(LoginStage2Response{
-            uuid: session.clone()
-        })
-    )
+    Ok(Json(LoginStage2Response {
+        uuid: session.clone(),
+    }))
 }
-
-

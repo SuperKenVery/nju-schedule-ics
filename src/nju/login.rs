@@ -29,7 +29,7 @@ fn extract_context(document: &VDom) -> Option<HashMap<String, String>> {
     let children = form.children()?.all(parser);
 
     for child in children {
-        let Some(tag)=child.as_tag() else{
+        let Some(tag) = child.as_tag() else {
             continue;
         };
 
@@ -39,7 +39,7 @@ fn extract_context(document: &VDom) -> Option<HashMap<String, String>> {
 
         let attr = tag.attributes();
 
-        let Some(Some(tag_type))=attr.get("type") else {
+        let Some(Some(tag_type)) = attr.get("type") else {
             continue;
         };
 
@@ -65,7 +65,7 @@ fn extract_context(document: &VDom) -> Option<HashMap<String, String>> {
     Some(context)
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct LoginCredential {
     pub castgc: String,
 }
@@ -79,18 +79,23 @@ impl LoginCredential {
         username: &str,
         password: &str,
         captcha_cb: impl Fn(Vec<u8>) -> F,
-    ) -> Result<LoginCredential,anyhow::Error>
+    ) -> Result<LoginCredential, anyhow::Error>
     where
         F: Future<Output = String>,
     {
-        let a=LoginOperation::start().await?;
-        let LoginOperation::WaitingVerificationCode{captcha,client: _,context: _}=&a else{
+        let a = LoginOperation::start().await?;
+        let LoginOperation::WaitingVerificationCode {
+            captcha,
+            client: _,
+            context: _,
+        } = &a
+        else {
             unreachable!("LoginOperation is not WaitingForVerificationCode after start()")
         };
-        let captcha_answer=captcha_cb(captcha.clone()).await;
+        let captcha_answer = captcha_cb(captcha.clone()).await;
 
-        let a=a.finish(username,password,&captcha_answer).await?;
-        let LoginOperation::Done(a)=a else{
+        let a = a.finish(username, password, &captcha_answer).await?;
+        let LoginOperation::Done(a) = a else {
             unreachable!("LoginOperation did not done after finish()")
         };
         Ok(a)
@@ -98,7 +103,7 @@ impl LoginCredential {
 }
 
 #[derive(Debug)]
-pub enum LoginOperation{
+pub enum LoginOperation {
     WaitingVerificationCode {
         client: reqwest::Client,
         captcha: Vec<u8>,
@@ -108,11 +113,19 @@ pub enum LoginOperation{
 }
 
 impl LoginOperation {
-    pub async fn start() -> Result<Self,anyhow::Error> {
-        let mut headers=reqwest::header::HeaderMap::new();
+    pub async fn start() -> Result<Self, anyhow::Error> {
+        let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
-        headers.insert("origin", "https://authserver.nju.edu.cn".try_into().unwrap());
-        headers.insert("referer", "https://authserver.nju.edu.cn/authserver/login".try_into().unwrap());
+        headers.insert(
+            "origin",
+            "https://authserver.nju.edu.cn".try_into().unwrap(),
+        );
+        headers.insert(
+            "referer",
+            "https://authserver.nju.edu.cn/authserver/login"
+                .try_into()
+                .unwrap(),
+        );
 
         let client = reqwest::ClientBuilder::new()
             .default_headers(headers)
@@ -151,8 +164,18 @@ impl LoginOperation {
         })
     }
 
-    pub async fn finish(&self,username: &str, password: &str, captcha_answer: &str) -> Result<Self,anyhow::Error> {
-        let Self::WaitingVerificationCode { client, captcha: _, context }=self else{
+    pub async fn finish(
+        &self,
+        username: &str,
+        password: &str,
+        captcha_answer: &str,
+    ) -> Result<Self, anyhow::Error> {
+        let Self::WaitingVerificationCode {
+            client,
+            captcha: _,
+            context,
+        } = self
+        else {
             return Err("Cannot finish a finished login operation").map_err(anyhow::Error::msg);
         };
 
@@ -162,7 +185,7 @@ impl LoginOperation {
         form.insert("username".to_string(), username.to_string());
         form.insert("password".to_string(), encrypted_password);
         form.insert("captchaResponse".to_string(), captcha_answer.to_string());
-        form.insert("dllt".to_string(), "mobileLogin".to_string());  // Get a long-term cookie, and prevent SMS code verification
+        form.insert("dllt".to_string(), "mobileLogin".to_string()); // Get a long-term cookie, and prevent SMS code verification
 
         let login_response = client
             .post("https://authserver.nju.edu.cn/authserver/login")
@@ -172,13 +195,9 @@ impl LoginOperation {
 
         for cookie in login_response.cookies() {
             if cookie.name() == "CASTGC" {
-                return Ok(
-                    LoginOperation::Done(
-                        LoginCredential {
-                            castgc: cookie.value().to_string(),
-                        }
-                    )
-                );
+                return Ok(LoginOperation::Done(LoginCredential {
+                    castgc: cookie.value().to_string(),
+                }));
             }
         }
 
@@ -187,10 +206,10 @@ impl LoginOperation {
         let resp = unsafe { tl::parse_owned(response_text, tl::ParserOptions::default()) }?;
         let doc = resp.get_ref();
         let reason = doc.get_element_by_id("msg");
-        let Some(reason)=reason else{
+        let Some(reason) = reason else {
             return Err("No CASTGC, cannot load reason").map_err(anyhow::Error::msg);
         };
-        let Some(reason)=reason.get(doc.parser()) else{
+        let Some(reason) = reason.get(doc.parser()) else {
             return Err("No CASTGC, cannot load reason").map_err(anyhow::Error::msg);
         };
 
@@ -199,14 +218,13 @@ impl LoginOperation {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
     use std::fs::File;
+    use std::io::stdin;
     use std::io::Write;
     use std::process::Command;
-    use std::io::stdin;
 
     #[test]
     fn encrypt_works() {
@@ -220,16 +238,18 @@ mod test {
 
     #[tokio::test]
     async fn get_auth() -> () {
-        let _a=LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou",
-            |content| async move{
-            let mut file=File::create("captcha.jpeg").unwrap();
-            file.write_all(&content).unwrap();
-            Command::new("open").arg("captcha.jpeg").spawn().unwrap();
-            let mut input=String::new();
-            stdin().read_line(&mut input).unwrap();
-            // Remove tailing \n
-            input.pop();
-            input
-        }).await.unwrap();
+        let _a =
+            LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou", |content| async move {
+                let mut file = File::create("captcha.jpeg").unwrap();
+                file.write_all(&content).unwrap();
+                Command::new("open").arg("captcha.jpeg").spawn().unwrap();
+                let mut input = String::new();
+                stdin().read_line(&mut input).unwrap();
+                // Remove tailing \n
+                input.pop();
+                input
+            })
+            .await
+            .unwrap();
     }
 }

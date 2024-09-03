@@ -3,24 +3,21 @@
  * TimeSpan: packing start and end time
  * CourseTime: packing time span, weekday and week
  */
-use chrono::{DateTime, Local, Duration, LocalResult};
+use chrono::{DateTime, Duration, Local, LocalResult};
 
-#[derive(PartialEq, Eq,Debug,Clone,Copy)]
-pub struct Time{
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Time {
     hour: u8,
     minute: u8,
 }
 
 impl Time {
     pub fn new(hour: u8, minute: u8) -> Self {
-        Self {
-            hour,
-            minute,
-        }
+        Self { hour, minute }
     }
 }
 
-#[derive(PartialEq, Eq,Debug,Clone,Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct TimeSpan {
     pub start: Time,
     pub end: Time,
@@ -28,10 +25,7 @@ pub struct TimeSpan {
 
 impl TimeSpan {
     pub fn new(start: Time, end: Time) -> Self {
-        Self {
-            start,
-            end,
-        }
+        Self { start, end }
     }
 
     pub fn from_course_index(idx: u8) -> Result<TimeSpan, anyhow::Error> {
@@ -54,70 +48,74 @@ impl TimeSpan {
     }
 
     pub fn from_course_index_range(start: u8, end: u8) -> Result<TimeSpan, anyhow::Error> {
-        let start=Self::from_course_index(start)?;
-        let end=Self::from_course_index(end)?;
+        let start = Self::from_course_index(start)?;
+        let end = Self::from_course_index(end)?;
 
-        Ok(TimeSpan::new(start.start,end.end))
+        Ok(TimeSpan::new(start.start, end.end))
     }
 }
 
 #[derive(Clone)]
-pub struct CourseTime{
+pub struct CourseTime {
     span: TimeSpan,
-    day: u8,    // 1 for Monday, 7 for Sunday
-    week: u8,   // 1 for the first week, 17 for the last week
+    day: u8,  // 1 for Monday, 7 for Sunday
+    week: u8, // 1 for the first week, 17 for the last week
 }
 
 impl CourseTime {
     pub fn new(span: TimeSpan, day: u8, week: u8) -> Self {
-        Self {
-            span,
-            day,
-            week,
-        }
+        Self { span, day, week }
     }
 
-    pub fn to_datetime(&self,first_week_start: DateTime<Local>) -> Result<(DateTime<Local>,DateTime<Local>),anyhow::Error> {
-        let [start,end]=[self.span.start,self.span.end];
+    pub fn to_datetime(
+        &self,
+        first_week_start: DateTime<Local>,
+    ) -> Result<(DateTime<Local>, DateTime<Local>), anyhow::Error> {
+        let [start, end] = [self.span.start, self.span.end];
 
-        let date=(
-            first_week_start
-            +Duration::weeks((self.week-1).into())
-            +Duration::days((self.day-1).into())
-        ).date_naive();
+        let date = (first_week_start
+            + Duration::weeks((self.week - 1).into())
+            + Duration::days((self.day - 1).into()))
+        .date_naive();
 
-        let start=date
+        let start = date
             .and_hms_opt(start.hour.into(), start.minute.into(), 0)
-            .ok_or("Cannot calculate start time").map_err(anyhow::Error::msg)?
+            .ok_or("Cannot calculate start time")
+            .map_err(anyhow::Error::msg)?
             .and_local_timezone(first_week_start.timezone());
-        let LocalResult::Single(start)=start else{
+        let LocalResult::Single(start) = start else {
             return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
         };
 
-        let stop=date
+        let stop = date
             .and_hms_opt(end.hour.into(), end.minute.into(), 0)
-            .ok_or("Cannot calculate end time").map_err(anyhow::Error::msg)?
+            .ok_or("Cannot calculate end time")
+            .map_err(anyhow::Error::msg)?
             .and_local_timezone(first_week_start.timezone());
-        let LocalResult::Single(stop)=stop else{
+        let LocalResult::Single(stop) = stop else {
             return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
         };
 
-        Ok((start,stop))
+        Ok((start, stop))
     }
 }
 
-impl std::fmt::Display for CourseTime{
+impl std::fmt::Display for CourseTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}-{}:{},第{}周 周{}",
-            self.span.start.hour,self.span.start.minute,
-            self.span.end.hour,self.span.end.minute,
-            self.day, self.week)
+        write!(
+            f,
+            "{}:{}-{}:{},第{}周 周{}",
+            self.span.start.hour,
+            self.span.start.minute,
+            self.span.end.hour,
+            self.span.end.minute,
+            self.day,
+            self.week
+        )
     }
 }
-impl std::fmt::Debug for CourseTime{
+impl std::fmt::Debug for CourseTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)
     }
 }
-
-
