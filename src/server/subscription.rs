@@ -20,7 +20,8 @@ pub async fn get_ical(
         .get_cred(&uuid)
         .await
         .ok_or(anyhow!("Invalid UUID"))?;
-    let cal = crate::schedule::calendar::Calendar::from_login(cred.clone()).await?;
+    let cal =
+        crate::schedule::calendar::Calendar::from_login(cred.clone(), &state.clone().hcal).await?;
     let cal = cal.to_bytes()?;
 
     let mut headers = HeaderMap::new();

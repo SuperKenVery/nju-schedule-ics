@@ -1,5 +1,7 @@
+use super::holidays::HolidayCal;
 use super::time::{CourseTime, TimeSpan};
 use anyhow::anyhow;
+use chrono::NaiveDate;
 use json;
 use json::JsonValue::Array as jsonArray;
 
@@ -13,7 +15,11 @@ pub struct Course {
 }
 
 impl Course {
-    pub fn from_json(raw: json::JsonValue) -> Result<Self, anyhow::Error> {
+    pub fn from_json(
+        raw: json::JsonValue,
+        hcal: &HolidayCal,
+        first_week_start: NaiveDate,
+    ) -> Result<Self, anyhow::Error> {
         // Notes
         let line_or_empty = |key: &str| {
             let content = raw[key].as_str();
@@ -87,6 +93,22 @@ impl Course {
                         week as u8,
                     ))
                 })
+                .filter_map(|t| {
+                    if let Ok(t) = t {
+                        let date = t.to_naivedate(first_week_start);
+                        if let Ok(date) = date {
+                            if hcal.is_holiday(date) {
+                                None
+                            } else {
+                                Some(Ok(t))
+                            }
+                        } else {
+                            Some(Err(anyhow!("Failed to convert CourseTime to NaiveDate")))
+                        }
+                    } else {
+                        Some(t) // Propagate error to `collect`
+                    }
+                })
                 .collect::<Result<Vec<_>, anyhow::Error>>()?
         } else {
             // 自由时间的课程，开始结束会设为0
@@ -104,14 +126,18 @@ impl Course {
         })
     }
 
-    pub fn batch_from_json(raw: json::JsonValue) -> Result<Vec<Self>, anyhow::Error> {
+    pub fn batch_from_json(
+        raw: json::JsonValue,
+        hcal: &HolidayCal,
+        first_week_start: NaiveDate,
+    ) -> Result<Vec<Self>, anyhow::Error> {
         let rows = &raw["datas"]["cxxszhxqkb"]["rows"];
         let jsonArray(rows) = rows else {
             return Err("Not an array??").map_err(anyhow::Error::msg);
         };
         let courses = rows
             .into_iter()
-            .map(|c| Self::from_json(c.clone()))
+            .map(|c| Self::from_json(c.clone(), hcal, first_week_start))
             .collect::<Result<Vec<_>, anyhow::Error>>()?;
         Ok(courses)
     }
@@ -124,8 +150,12 @@ mod test {
     use std::fs::File;
     use std::io::Read;
 
-    #[test]
-    fn test_course_from_json() {
+    #[tokio::test]
+    async fn test_course_from_json() {
+        // Build hcal and first_week_start
+        let hcal = HolidayCal::from_shuyz().await.unwrap();
+        let first_week_start = NaiveDate::from_ymd_opt(2024, 9, 2).unwrap();
+
         // Read from ./example_course_data_1.txt
         let mut file = File::open("./src/schedule/example_course_data_1.txt").unwrap();
         // Read all its contents
@@ -139,7 +169,7 @@ mod test {
             panic!("Not an array??");
         };
         for c in rows {
-            let course = Course::from_json(c.clone());
+            let course = Course::from_json(c.clone(), &hcal, first_week_start);
             println!("{:#?}", course);
             let _course = course.unwrap();
         }

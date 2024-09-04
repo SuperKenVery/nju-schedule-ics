@@ -13,10 +13,12 @@ use super::{
     error::AppError,
     login, nojslogin,
 };
+use crate::schedule::holidays::HolidayCal;
 
 pub struct AppState {
     pub cookie_db: Arc<Mutex<CookieDb>>,
     pub site_url: String,
+    pub hcal: HolidayCal,
 }
 
 pub async fn build_app(
@@ -26,6 +28,7 @@ pub async fn build_app(
     let state = Arc::new(AppState {
         cookie_db: db.clone(),
         site_url,
+        hcal: HolidayCal::from_shuyz().await?,
     });
 
     let app = Router::new()
