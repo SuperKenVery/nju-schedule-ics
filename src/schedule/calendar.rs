@@ -4,7 +4,7 @@ use super::{course::Course, holidays::HolidayCal};
 use crate::nju::getcourse;
 use crate::nju::login::LoginCredential;
 use anyhow::anyhow;
-use chrono::{DateTime, Local, LocalResult, NaiveDate, TimeZone};
+use chrono::NaiveDate;
 use ics::{
     components::{Parameter, Property},
     parameters::TzIDParam,

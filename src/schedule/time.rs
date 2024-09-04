@@ -4,9 +4,7 @@
  * CourseTime: packing time span, weekday and week
  */
 use anyhow::anyhow;
-use chrono::{
-    DateTime, Datelike, Days, Duration, Local, LocalResult, NaiveDate, TimeZone, Timelike,
-};
+use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone, Timelike};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Time {

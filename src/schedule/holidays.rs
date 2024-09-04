@@ -1,12 +1,9 @@
 use anyhow::anyhow;
-use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone};
+use chrono::{Datelike, Days, Local, NaiveDate};
 use json;
 use reqwest;
-use scraper::{Html, Selector};
-use std::collections::{HashMap, HashSet};
 
-use crate::nju::getcourse::get_first_week_start;
-use crate::server::error::AppError;
+use std::collections::HashSet;
 
 /*
  * 接口使用说明

@@ -1,5 +1,5 @@
 use super::login::LoginCredential;
-use chrono::{DateTime, Datelike, Days, Local, NaiveDate};
+use chrono::{Datelike, Days, Local, NaiveDate};
 use json;
 use std::collections::HashMap;
 use std::sync::Arc;
