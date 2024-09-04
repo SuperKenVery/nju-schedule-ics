@@ -1,10 +1,10 @@
 use super::login::LoginCredential;
-use chrono::{DateTime, Datelike, Local};
+use chrono::{Datelike, Days, Local, NaiveDate};
 use json;
 use std::collections::HashMap;
 use std::sync::Arc;
 // use crate::schedule::course::Course;
-use anyhow;
+use anyhow::anyhow;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
@@ -74,9 +74,7 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
     Ok(resp)
 }
 
-pub async fn get_first_week_start(
-    auth: &LoginCredential,
-) -> Result<DateTime<Local>, anyhow::Error> {
+pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, anyhow::Error> {
     let client = build_client(auth)?;
 
     let week_info = client
@@ -99,17 +97,21 @@ pub async fn get_first_week_start(
     };
     let week_num = week_name[3..week_name.len() - 3].parse::<u8>()?;
 
-    // Get local date from chrono
-    let local_date = chrono::Local::now();
+    // Get local date
+    let local_date = Local::now().date_naive();
 
     // What day is it today?
     let weekday = local_date.weekday().num_days_from_monday();
 
     // Rewind local_date to Monday
-    let monday = local_date - chrono::Duration::days(weekday as i64);
+    let monday = local_date
+        .checked_sub_days(Days::new(weekday as u64))
+        .ok_or(anyhow!("Failed to calculate this week's Moday"))?;
 
     // Rewind monday to the Monday of the first week
-    let first_week_start = monday - chrono::Duration::weeks(week_num as i64 - 1);
+    let first_week_start = monday
+        .checked_sub_days(Days::new(((week_num - 1) * 7) as u64))
+        .ok_or(anyhow!("Failed to calculate first week's Monday"))?;
 
     Ok(first_week_start)
 }
@@ -124,7 +126,7 @@ mod test {
     use tokio;
 
     async fn get_auth() -> LoginCredential {
-        LoginCredential::from_login("PutYourOwn", "NotGonnaTellYou", |content| async move {
+        LoginCredential::from_login("NotGonnaTellYou", "PutYourOwnHere", |content| async move {
             let mut file = File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();
             Command::new("open").arg("captcha.jpeg").spawn().unwrap();
@@ -132,6 +134,7 @@ mod test {
             stdin().read_line(&mut input).unwrap();
             // Remove tailing \n
             input.pop();
+            println!("Got captcha `{}`", input);
             input
         })
         .await
@@ -156,5 +159,6 @@ mod test {
         let auth = get_auth().await;
         let result = get_first_week_start(&auth).await.unwrap();
         println!("{}", result);
+        assert_eq!(result, NaiveDate::from_ymd_opt(2024, 9, 2).unwrap());
     }
 }

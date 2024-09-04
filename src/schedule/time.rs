@@ -3,7 +3,8 @@
  * TimeSpan: packing start and end time
  * CourseTime: packing time span, weekday and week
  */
-use chrono::{DateTime, Duration, Local, LocalResult};
+use anyhow::anyhow;
+use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone, Timelike};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Time {
@@ -67,36 +68,46 @@ impl CourseTime {
         Self { span, day, week }
     }
 
+    pub fn to_naivedate(&self, first_week_start: NaiveDate) -> Result<NaiveDate, anyhow::Error> {
+        first_week_start
+            .checked_add_days(Days::new(((self.week - 1) * 7) as u64))
+            .and_then(|d| d.checked_add_days(Days::new((self.day - 1) as u64)))
+            .ok_or(anyhow!("Failed to calculate event date"))
+    }
+
     pub fn to_datetime(
         &self,
-        first_week_start: DateTime<Local>,
+        first_week_start: NaiveDate,
     ) -> Result<(DateTime<Local>, DateTime<Local>), anyhow::Error> {
         let [start, end] = [self.span.start, self.span.end];
 
-        let date = (first_week_start
-            + Duration::weeks((self.week - 1).into())
-            + Duration::days((self.day - 1).into()))
-        .date_naive();
+        let date = self.to_naivedate(first_week_start)?;
 
-        let start = date
-            .and_hms_opt(start.hour.into(), start.minute.into(), 0)
-            .ok_or("Cannot calculate start time")
-            .map_err(anyhow::Error::msg)?
-            .and_local_timezone(first_week_start.timezone());
-        let LocalResult::Single(start) = start else {
-            return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
-        };
+        let start = Local
+            .with_ymd_and_hms(
+                date.year(),
+                date.month(),
+                date.day(),
+                start.hour as u32,
+                start.minute as u32,
+                0,
+            )
+            .single()
+            .ok_or(anyhow!("Failed to calculate start datetime"))?;
 
-        let stop = date
-            .and_hms_opt(end.hour.into(), end.minute.into(), 0)
-            .ok_or("Cannot calculate end time")
-            .map_err(anyhow::Error::msg)?
-            .and_local_timezone(first_week_start.timezone());
-        let LocalResult::Single(stop) = stop else {
-            return Err("Cannot restore timezone").map_err(anyhow::Error::msg);
-        };
+        let end = Local
+            .with_ymd_and_hms(
+                date.year(),
+                date.month(),
+                date.day(),
+                end.hour as u32,
+                end.minute as u32,
+                0,
+            )
+            .single()
+            .ok_or(anyhow!("Failed to calculate end datetime"))?;
 
-        Ok((start, stop))
+        Ok((start, end))
     }
 }
 

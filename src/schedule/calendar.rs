@@ -1,16 +1,17 @@
 /* Generate iCalendar file (.ics) from Course */
-use super::course::Course;
 use super::location::get_geolocation;
+use super::{course::Course, holidays::HolidayCal};
 use crate::nju::getcourse;
 use crate::nju::login::LoginCredential;
-use chrono::{DateTime, Local, LocalResult, TimeZone};
+use anyhow::anyhow;
+use chrono::NaiveDate;
 use ics::{
     components::{Parameter, Property},
     parameters::TzIDParam,
     properties::{Description, DtEnd, DtStart, Geo, Location, Summary},
     Event as oriEvent, ICalendar,
 };
-use std::{ops::Deref};
+use std::ops::Deref;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -19,7 +20,7 @@ pub struct Event<'a>(oriEvent<'a>);
 impl<'a> Event<'a> {
     fn from_course(
         course: &Course,
-        first_week_start: DateTime<Local>,
+        first_week_start: NaiveDate,
     ) -> Result<Vec<Event<'a>>, anyhow::Error> {
         const TIME_FMT: &str = "%Y%m%dT%H%M%S";
 
@@ -42,7 +43,6 @@ impl<'a> Event<'a> {
                 apple_addr.add(Parameter::new("X-TITLE", course.location.clone()));
                 event.push(apple_addr);
             }
-
             let (start, end) = time.to_datetime(first_week_start)?;
             let tz = TzIDParam::new("/Etc/GMT-8");
             let mut start = DtStart::new(start.format(TIME_FMT).to_string());
@@ -83,10 +83,17 @@ impl<'a> Calendar<'a> {
         Self(cal)
     }
 
-    pub async fn from_login(cred: LoginCredential) -> Result<Calendar<'a>, anyhow::Error> {
+    pub async fn from_login(
+        cred: LoginCredential,
+        hcal: &HolidayCal,
+    ) -> Result<Calendar<'a>, anyhow::Error> {
         let first_week_start = getcourse::get_first_week_start(&cred).await?;
         let courses = crate::nju::getcourse::get_course_raw(&cred).await?;
-        let courses = crate::schedule::course::Course::batch_from_json(json::parse(&courses)?)?;
+        let courses = crate::schedule::course::Course::batch_from_json(
+            json::parse(&courses)?,
+            hcal,
+            first_week_start,
+        )?;
 
         let events = courses
             .iter()
@@ -99,13 +106,16 @@ impl<'a> Calendar<'a> {
     }
 
     pub async fn from_test() -> Result<Calendar<'a>, anyhow::Error> {
-        let first_week_start = Local.with_ymd_and_hms(2023, 9, 4, 0, 0, 0);
-        let LocalResult::Single(first_week_start) = first_week_start else {
-            Err("Failed to resolve first week start").map_err(anyhow::Error::msg)?
-        };
+        let first_week_start = NaiveDate::from_ymd_opt(2024, 9, 2)
+            .ok_or(anyhow!("Failed to construct first_week_start NaiveDate"))?;
 
+        let hcal = HolidayCal::from_shuyz().await?;
         let courses = std::fs::read_to_string("src/nju/example.json")?;
-        let courses = crate::schedule::course::Course::batch_from_json(json::parse(&courses)?)?;
+        let courses = crate::schedule::course::Course::batch_from_json(
+            json::parse(&courses)?,
+            &hcal,
+            first_week_start,
+        )?;
 
         let events = courses
             .iter()
@@ -138,6 +148,7 @@ impl<'a> Deref for Calendar<'a> {
 #[cfg(test)]
 mod test {
     use crate::schedule::course::Course;
+    use crate::schedule::holidays::HolidayCal;
 
     use super::*;
     use crate::nju::getcourse;
@@ -165,6 +176,7 @@ mod test {
 
     #[tokio::test]
     async fn test_to_calendar() {
+        let hcal = HolidayCal::from_shuyz().await.unwrap();
         let auth = get_auth().await;
         let first_week_start = getcourse::get_first_week_start(&auth).await.unwrap();
         let courses = getcourse::get_course_raw(&auth).await.unwrap();
@@ -176,7 +188,7 @@ mod test {
         };
 
         for course in courses {
-            let course = Course::from_json(course.clone()).unwrap();
+            let course = Course::from_json(course.clone(), &hcal, first_week_start).unwrap();
             let events = Event::from_course(&course, first_week_start).unwrap();
             for event in events {
                 println!("{:#?}", event);

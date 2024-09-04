@@ -12,3 +12,6 @@ pub mod calendar;
 
 /* 根据位置名称生成经纬度 */
 mod location;
+
+/* 根据调休信息，判断某个日期是否放假 */
+pub mod holidays;
