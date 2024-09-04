@@ -18,7 +18,7 @@ reqwest = { version = "0.11.18", features = ["cookie_store", "cookies", "json"] 
 reqwest-middleware = "0.2.3"
 reqwest-retry = "0.3.0"
 serde = { version = "1.0.188", features = ["derive"] }
-sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "time"] }
+sqlx = { version = "0.8.1", features = ["sqlite", "runtime-tokio", "time"] }
 time = { version = "0.3.36", features = ["std"] }
 tl = "0.7.7"
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
