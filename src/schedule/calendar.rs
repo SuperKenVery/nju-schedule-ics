@@ -9,7 +9,7 @@ use ics::{
     components::{Parameter, Property},
     parameters::TzIDParam,
     properties::{Description, DtEnd, DtStart, Geo, Location, Summary},
-    Event as oriEvent, ICalendar,
+    Event as oriEvent, ICalendar, Standard, TimeZone,
 };
 use std::ops::Deref;
 use uuid::Uuid;
@@ -21,6 +21,7 @@ impl<'a> Event<'a> {
     fn from_course(
         course: &Course,
         first_week_start: NaiveDate,
+        tzid: &'a str,
     ) -> Result<Vec<Event<'a>>, anyhow::Error> {
         const TIME_FMT: &str = "%Y%m%dT%H%M%S";
 
@@ -44,7 +45,7 @@ impl<'a> Event<'a> {
                 event.push(apple_addr);
             }
             let (start, end) = time.to_datetime(first_week_start)?;
-            let tz = TzIDParam::new("/Etc/GMT-8");
+            let tz = TzIDParam::new(tzid);
             let mut start = DtStart::new(start.format(TIME_FMT).to_string());
             start.add(tz.clone());
             let mut end = DtEnd::new(end.format(TIME_FMT).to_string());
@@ -76,7 +77,7 @@ pub struct Calendar<'a>(ICalendar<'a>);
 
 impl<'a> Calendar<'a> {
     pub fn with_events(events: Vec<Event<'a>>) -> Self {
-        let mut cal = ICalendar::new("2.0", "ics-rs");
+        let mut cal = ICalendar::new("2.0", "南哪另一课表");
         for event in events {
             cal.add_event(event.0);
         }
@@ -95,14 +96,19 @@ impl<'a> Calendar<'a> {
             first_week_start,
         )?;
 
+        let tzid = "NJU";
+        let tz = TimeZone::standard(tzid, Standard::new("19710101T000000", "+0800", "+0800"));
+
         let events = courses
             .iter()
-            .map(|c| Event::from_course(c, first_week_start))
-            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?;
+            .map(|c| Event::from_course(c, first_week_start, tzid))
+            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?
+            .concat();
 
-        let events = events.concat();
+        let mut calendar = Self::with_events(events);
+        calendar.0.add_timezone(tz);
 
-        Ok(Self::with_events(events))
+        Ok(calendar)
     }
 
     pub async fn from_test() -> Result<Calendar<'a>, anyhow::Error> {
@@ -117,14 +123,19 @@ impl<'a> Calendar<'a> {
             first_week_start,
         )?;
 
+        let tzid = "NJU";
+        let tz = TimeZone::standard(tzid, Standard::new("19710101T000000", "+0800", "+0800"));
+
         let events = courses
             .iter()
-            .map(|c| Event::from_course(c, first_week_start))
-            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?;
+            .map(|c| Event::from_course(c, first_week_start, tzid))
+            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?
+            .concat();
 
-        let events = events.concat();
+        let mut calendar = Self::with_events(events);
+        calendar.0.add_timezone(tz);
 
-        Ok(Self::with_events(events))
+        Ok(calendar)
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, anyhow::Error> {
@@ -189,7 +200,7 @@ mod test {
 
         for course in courses {
             let course = Course::from_json(course.clone(), &hcal, first_week_start).unwrap();
-            let events = Event::from_course(&course, first_week_start).unwrap();
+            let events = Event::from_course(&course, first_week_start, "NJU").unwrap();
             for event in events {
                 println!("{:#?}", event);
             }
