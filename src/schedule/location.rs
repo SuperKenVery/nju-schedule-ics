@@ -90,6 +90,9 @@ pub fn get_geolocation(location: &str) -> Option<GeoLocation> {
     } else if location.contains("现工院楼") {
         // https://maps.apple.com/?ll=32.121247,118.955225&q=%E5%8D%97%E4%BA%AC%E4%BF%A1%E6%81%AF%E8%81%8C%E4%B8%9A%E6%8A%80%E6%9C%AF%E5%AD%A6%E9%99%A2&spn=0.001590,0.001999&t=m
         GeoLocation::new(32.121247, 118.955225).into()
+    } else if location.contains("四组团") {
+        // https://maps.apple.com/?ll=32.121168,118.951608&q=Qixia%20%E2%80%94%20Nanjing&spn=0.000428,0.000776&t=m
+        GeoLocation::new(32.121168, 118.951608).into()
     } else {
         None
     }
