@@ -2,6 +2,10 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use colog;
+use colog::format::CologStyle;
+use colored::Colorize;
+use log::Level;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -48,7 +52,15 @@ pub async fn build_app(
     Ok(app)
 }
 
+fn init_log() {
+    colog::default_builder()
+        .format(colog::formatter(LogTimePrefix))
+        .filter(None, log::LevelFilter::Info)
+        .init();
+}
+
 pub async fn start_server_from_config(filename: &str) -> Result<(), AppError> {
+    init_log();
     let (app, config) = parse_config(filename).await?;
 
     let listener = tokio::net::TcpListener::bind(&config.listen_addr).await?;
@@ -58,6 +70,7 @@ pub async fn start_server_from_config(filename: &str) -> Result<(), AppError> {
 }
 
 pub async fn start_server_from_commandline() -> Result<(), AppError> {
+    init_log();
     let (app, config) = from_commandline().await?;
 
     let listener = tokio::net::TcpListener::bind(&config.listen_addr).await?;
@@ -66,9 +79,26 @@ pub async fn start_server_from_commandline() -> Result<(), AppError> {
     Ok(())
 }
 
+pub struct LogTimePrefix;
+
+impl CologStyle for LogTimePrefix {
+    fn prefix_token(&self, level: &Level) -> String {
+        format!(
+            "[{}] {}",
+            chrono::Local::now()
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+                .blue()
+                .bold(),
+            self.level_color(level, self.level_token(level))
+        )
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use log::info;
     use tokio;
 
     #[tokio::test]
@@ -80,7 +110,7 @@ mod test {
             .await
             .unwrap();
 
-        println!("Starting server...");
+        info!("Starting server...");
 
         let listener = tokio::net::TcpListener::bind("0.0.0.0:8899").await.unwrap();
         axum::serve(listener, app).await.unwrap();

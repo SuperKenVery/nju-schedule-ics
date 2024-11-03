@@ -1,4 +1,5 @@
 use crate::nju::login::{LoginCredential, LoginOperation};
+use log::error;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use std::sync::Arc;
 use std::{collections::HashMap, str::FromStr};
@@ -203,7 +204,7 @@ impl CookieDb {
                 // So just panic if lock() returns err
                 let err = sa.lock().await.cleanup_login_op().await;
                 if let Err(err) = err {
-                    eprintln!("Error in cleanup_login_op: {:?}", err);
+                    error!("Error in cleanup_login_op: {:?}", err);
                 }
                 tokio::time::sleep(std::time::Duration::from_secs(30 * 60)).await;
                 // clean every 30min
@@ -215,7 +216,7 @@ impl CookieDb {
             loop {
                 let err = sb.lock().await.cleanup_cookie_db().await;
                 if let Err(err) = err {
-                    eprintln!("Error in cleanup_cookie_db: {:?}", err);
+                    error!("Error in cleanup_cookie_db: {:?}", err);
                 }
                 tokio::time::sleep(std::time::Duration::from_secs(10 * 24 * 60 * 60)).await;
                 // clean every 10days

@@ -3,6 +3,7 @@ use super::error::AppError;
 use super::server::build_app;
 use axum::Router;
 use clap::Parser;
+use log::{error, info};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -36,9 +37,9 @@ pub async fn parse_config(path: &str) -> Result<(Router, Config), AppError> {
             Ok((build_app(db, config.site_url.clone()).await?, config))
         }
         Err(e) => {
-            println!("Failed to read config file: {}", e);
+            error!("Failed to read config file: {}", e);
             if e.kind() == std::io::ErrorKind::NotFound {
-                println!("Creating default config file...");
+                info!("Creating default config file...");
                 let result = std::fs::write(
                     path,
                     r#"
@@ -59,7 +60,7 @@ listen_addr="0.0.0.0:8899"
                     .trim(),
                 );
                 if let Err(e) = result {
-                    eprintln!("Failed to write default config file: {}", e)
+                    error!("Failed to write default config file: {}", e)
                 }
             }
 

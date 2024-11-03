@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 // use crate::schedule::course::Course;
 use anyhow::anyhow;
+use log::debug;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
@@ -83,6 +84,7 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, a
         .await?
         .text()
         .await?;
+    debug!("Week info: {}", week_info);
     let week_info = json::parse(&week_info)?;
 
     let name = &week_info["d"]["dateInfo"]["name"]; // "2023-2024学年上学期 第1周"

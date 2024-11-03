@@ -5,6 +5,7 @@ use axum::{
     http::{Response, StatusCode},
     response::IntoResponse,
 };
+use log::error;
 
 use anyhow::Error;
 
@@ -15,7 +16,7 @@ pub struct AppError(Error);
 // Tell axum how to convert `AppError` into a response.
 impl IntoResponse for AppError {
     fn into_response(self) -> Response<axum::body::Body> {
-        println!("Error: {:?}", self.0);
+        error!("Error: {:?}\n{}", self.0, self.0.backtrace());
 
         let err = include_str!("../html/error.html");
         let err = err.replace("ERROR", self.0.to_string().as_str());
