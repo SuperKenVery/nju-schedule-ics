@@ -179,6 +179,15 @@ impl CookieDb {
         Ok(())
     }
 
+    pub async fn remove_uuid(&self, uuid: &str) -> Result<(), anyhow::Error> {
+        sqlx::query("DELETE FROM castgc WHERE key = ?")
+            .bind(uuid)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     async fn cleanup_cookie_db(&self) -> Result<(), anyhow::Error> {
         // Clean up cookies older than 1 year
         let now = OffsetDateTime::now_utc();
@@ -186,10 +195,7 @@ impl CookieDb {
         let rows = self.get_all().await?;
         for (key, _, last_access) in rows {
             if now - last_access > year {
-                sqlx::query("DELETE FROM castgc WHERE key = ?")
-                    .bind(key)
-                    .execute(&self.pool)
-                    .await?;
+                self.remove_uuid(&key).await?;
             }
         }
 
