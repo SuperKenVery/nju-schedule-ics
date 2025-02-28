@@ -3,3 +3,5 @@ pub mod getcourse;
 
 /* 登陆到南京大学统一认证，获取cookie */
 pub mod login;
+
+pub mod getexampted;
