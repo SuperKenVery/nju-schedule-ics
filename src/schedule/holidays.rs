@@ -18,7 +18,8 @@ use std::collections::HashSet;
 
 pub struct HolidayCal {
     pub holidays: HashSet<NaiveDate>,
-    pub compdays: HashSet<NaiveDate>, // 调休日期
+    /// 调休日期
+    pub compdays: HashSet<NaiveDate>,
 }
 
 impl HolidayCal {
@@ -95,7 +96,6 @@ impl HolidayCal {
     }
 }
 
-// 测试用途
 #[cfg(test)]
 mod test {
     use chrono::NaiveDate;
