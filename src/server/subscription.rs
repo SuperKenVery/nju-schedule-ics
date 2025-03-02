@@ -20,24 +20,17 @@ pub async fn get_ical(
         .get_cred(&uuid)
         .await
         .ok_or(anyhow!("Invalid UUID"))?;
-    let cal =
-        crate::schedule::calendar::Calendar::from_login(cred.clone(), &state.clone().hcal).await;
+    let cal = crate::schedule::calendar::Calendar::from_login(cred.clone(), &state.clone().hcal)
+        .await?
+        .to_bytes()?;
 
-    match cal {
-        Ok(cal) => {
-            let cal = cal.to_bytes()?;
-            let mut headers = HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_str("text/calendar")?,
-            );
-            Ok((headers, cal))
-        }
-        Err(e) => {
-            // cookie_db.remove_uuid(&uuid).await?;
-            Err(e.into())
-        }
-    }
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_str("text/calendar")?,
+    );
+
+    Ok((headers, cal))
 }
 
 #[allow(dead_code)]

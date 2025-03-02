@@ -36,6 +36,7 @@
           # Use mold when we are runnning in Linux
           (lib.optionals stdenv.isLinux mold)
         ];
+
         buildInputs = [
           rustToolchain.${pkgs.system}.default
           rust-analyzer-unwrapped
@@ -49,9 +50,11 @@
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
         ]));
+
         RUST_SRC_PATH = "${
           rustToolchain.${pkgs.system}.rust-src
         }/lib/rustlib/src/rust/library";
+        RUST_BACKTRACE = "1";
       });
     });
 
@@ -93,7 +96,10 @@
 
         config = {
           Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" "--config" "/config.toml" ];
-          Env = [ "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" ];
+          Env = [
+            "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            "RUST_BACKTRACE=1"
+          ];
         };
       };
     });
