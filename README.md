@@ -44,6 +44,7 @@
 1. 可以直接运行nix flake：
 
 ```bash
+cachix use superkenvery  # 使用我的构建缓存，避免编译
 nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 ```
 
@@ -63,14 +64,6 @@ docker run -p 8899:8899 -v ./config.toml:/config.toml nju-schedule-ics:<use the 
 ```bash
 cargo run -- --config config.toml
 ```
-
-如果使用nix构建，可以添加nix cache来避免编译，直接下载二进制:
-
-```bash
-cachix use superkenvery
-```
-
-目前GitHub Actions会生成`x86_64-linux`和`x86_64-darwin`的cache，我有时会推送 `aarch64-darwin`和 `aarch64-linux`的cache。
 
 ### 配置文件
 

@@ -78,44 +78,37 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
 pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, anyhow::Error> {
     let client = build_client(auth)?;
 
-    let week_info = client
-        .get("https://wx.nju.edu.cn/njukb/wap/default/classes")
+    // Get neccessary cookies
+    let _ = client
+        .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
+        .send()
+        .await?;
+
+    let semester_info_raw = client
+        .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxjcs.do")
         .send()
         .await?
         .text()
         .await?;
-    debug!("Week info: {}", week_info);
-    let week_info = json::parse(&week_info)?;
 
-    let name = &week_info["d"]["dateInfo"]["name"]; // "2023-2024学年上学期 第1周"
-    let [_semester, week_name] = name
+    let semester_info = json::parse(&semester_info_raw);
+    let Ok(semester_info) = semester_info else {
+        debug!("Cannot parse semester info: {}", semester_info_raw);
+        return Err(anyhow!("Failed to parse semester info"));
+    };
+
+    let name = &semester_info["datas"]["cxjcs"]["rows"][0]["XQKSRQ"]; // "2025-02-17 00:00:00"
+    let [date, _time] = name
         .as_str()
-        .ok_or("Cannot read semester and week name")
-        .map_err(anyhow::Error::msg)?
+        .ok_or(anyhow!("Cannot read semester and week name"))?
         .split(" ")
         .collect::<Vec<&str>>()[..]
     else {
-        return Err(anyhow::Error::msg("Invalid dateInfo name"));
+        return Err(anyhow!("Failed to parse date for semester start"));
     };
-    let week_num = week_name[3..week_name.len() - 3].parse::<u8>()?;
 
-    // Get local date
-    let local_date = Local::now().date_naive();
-
-    // What day is it today?
-    let weekday = local_date.weekday().num_days_from_monday();
-
-    // Rewind local_date to Monday
-    let monday = local_date
-        .checked_sub_days(Days::new(weekday as u64))
-        .ok_or(anyhow!("Failed to calculate this week's Moday"))?;
-
-    // Rewind monday to the Monday of the first week
-    let first_week_start = monday
-        .checked_sub_days(Days::new(((week_num - 1) * 7) as u64))
-        .ok_or(anyhow!("Failed to calculate first week's Monday"))?;
-
-    Ok(first_week_start)
+    let semester_start = NaiveDate::parse_from_str(date, "%Y-%m-%d")?;
+    Ok(semester_start)
 }
 
 #[cfg(test)]

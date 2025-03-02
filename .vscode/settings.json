@@ -1,9 +1,0 @@
-{
-    "rust-analyzer.linkedProjects": [
-        "./Cargo.toml"
-    ],
-    "lldb.displayFormat": "auto",
-    "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands",
-    "nixEnvSelector.nixFile": "${workspaceFolder}/flake.nix"
-}

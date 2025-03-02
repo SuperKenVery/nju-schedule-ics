@@ -36,6 +36,7 @@
           # Use mold when we are runnning in Linux
           (lib.optionals stdenv.isLinux mold)
         ];
+
         buildInputs = [
           rustToolchain.${pkgs.system}.default
           rust-analyzer-unwrapped
@@ -49,9 +50,11 @@
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
         ]));
+
         RUST_SRC_PATH = "${
           rustToolchain.${pkgs.system}.rust-src
         }/lib/rustlib/src/rust/library";
+        RUST_BACKTRACE = "1";
       });
     });
 
@@ -72,7 +75,7 @@
           src = (pkgs.lib.cleanSource ./.);
         } ;
 
-        cargoSha256 = "sha256-iOSg4EOC4t0VY1aIltwK96+joQTCFGsizABENchsCT8=";
+        cargoSha256 = "sha256-IAHdSEQZheG1gXwytmymnxoJVuJtxZho3/6n0RzGjb0=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
@@ -93,13 +96,16 @@
 
         config = {
           Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" "--config" "/config.toml" ];
-          Env = [ "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" ];
+          Env = [
+            "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            "RUST_BACKTRACE=1"
+          ];
         };
       };
     });
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = nixpkgs.lib.getAttrs [ "x86_64-linux" "x86_64-darwin" ] self.packages;
+      checks = self.packages;
     };
   };
 }

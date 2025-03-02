@@ -10,9 +10,9 @@ use uuid::Uuid;
 pub struct CookieDb {
     pool: SqlitePool,
 
-    // We only store new login operations.
-    // For completed logins, we directly fetch its
-    // cookie from sqlite database.
+    /// We only store new login operations.
+    /// For completed logins, we directly fetch its
+    /// cookie from sqlite database.
     login_ops: HashMap<String, (OffsetDateTime, LoginOperation)>,
 }
 
@@ -95,6 +95,7 @@ impl CookieDb {
         Ok(rows)
     }
 
+    /// Create a new login session
     pub async fn new_session(&mut self) -> Result<String, anyhow::Error> {
         let mut session = Uuid::new_v4().to_string();
 
@@ -110,6 +111,7 @@ impl CookieDb {
         Ok(session)
     }
 
+    /// Get the captcha for a login session
     pub async fn get_session_captcha(&self, session: &str) -> Result<Vec<u8>, anyhow::Error> {
         if let (
             _last_access,
@@ -131,6 +133,7 @@ impl CookieDb {
         }
     }
 
+    /// Login for a session, give the username, password and captcha answer
     pub async fn session_login(
         &mut self,
         session: &str,
@@ -154,15 +157,15 @@ impl CookieDb {
         }
     }
 
+    /// Get the login credential for a session
     pub async fn get_cred(&self, session: &str) -> Option<LoginCredential> {
         let castgc = self.get(session).await.ok()??;
 
         Some(LoginCredential::new(castgc))
     }
 
-    // Clean up
+    /// Clean up login operations older than 5 minutes
     async fn cleanup_login_op(&mut self) -> Result<(), anyhow::Error> {
-        // Clean up login operations older than 5 minutes
         let now = OffsetDateTime::now_utc();
         let mut to_remove = Vec::new();
 
@@ -188,8 +191,8 @@ impl CookieDb {
         Ok(())
     }
 
+    /// Clean up cookies older than 1 year
     async fn cleanup_cookie_db(&self) -> Result<(), anyhow::Error> {
-        // Clean up cookies older than 1 year
         let now = OffsetDateTime::now_utc();
         let year = Duration::days(365);
         let rows = self.get_all().await?;

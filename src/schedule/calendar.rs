@@ -1,4 +1,5 @@
-/* Generate iCalendar file (.ics) from Course */
+//! Generate iCalendar file (.ics) from Course
+
 use super::location::get_geolocation;
 use super::{course::Course, holidays::HolidayCal};
 use crate::nju::getcourse;
@@ -18,6 +19,8 @@ use uuid::Uuid;
 pub struct Event<'a>(oriEvent<'a>);
 
 impl<'a> Event<'a> {
+    /// Convert our course into a list of iCalendar events
+    /// It's a list because Course has not-simple recurrent rules
     fn from_course(
         course: &Course,
         first_week_start: NaiveDate,
@@ -72,6 +75,7 @@ impl<'a> Deref for Event<'a> {
     }
 }
 
+/// The final calendar that would be served to the clients
 #[derive(Debug)]
 pub struct Calendar<'a>(ICalendar<'a>);
 

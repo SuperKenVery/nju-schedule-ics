@@ -5,8 +5,10 @@ use axum::{
 use colog;
 use colog::format::CologStyle;
 use colored::Colorize;
-use log::Level;
-use std::sync::Arc;
+use env_logger::fmt::Formatter;
+use log::{Level, Record};
+use std::io::Write;
+use std::{result, sync::Arc};
 use tokio::sync::Mutex;
 
 use super::db;
@@ -55,7 +57,7 @@ pub async fn build_app(
 fn init_log() {
     colog::default_builder()
         .format(colog::formatter(LogTimePrefix))
-        .filter(None, log::LevelFilter::Info)
+        .filter(Some("nju_schedule_ics"), log::LevelFilter::Debug)
         .init();
 }
 
@@ -93,6 +95,18 @@ impl CologStyle for LogTimePrefix {
             self.level_color(level, self.level_token(level))
         )
     }
+
+    // Show module name in log
+    // fn format(&self, buf: &mut Formatter, record: &Record<'_>) -> Result<(), std::io::Error> {
+    //     write!(
+    //         buf,
+    //         "{} [{}] {} - {}\n",
+    //         self.prefix_token(&record.level()),
+    //         record.module_path().unwrap_or("unknown"),
+    //         record.level(),
+    //         record.args()
+    //     )
+    // }
 }
 
 #[cfg(test)]
