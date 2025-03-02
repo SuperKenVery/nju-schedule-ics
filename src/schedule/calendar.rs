@@ -1,8 +1,8 @@
 /* Generate iCalendar file (.ics) from Course */
 use super::location::get_geolocation;
 use super::{course::Course, holidays::HolidayCal};
-use crate::nju::getcourse;
 use crate::nju::login::LoginCredential;
+use crate::nju::{getcourse, parse_course};
 use anyhow::anyhow;
 use chrono::NaiveDate;
 use ics::{
@@ -88,8 +88,9 @@ impl<'a> Calendar<'a> {
         cred: LoginCredential,
         hcal: &HolidayCal,
     ) -> Result<Calendar<'a>, anyhow::Error> {
-        let first_week_start = getcourse::get_first_week_start(&cred).await?;
-        let courses = crate::nju::getcourse::get_course_raw(&cred).await?;
+        let client = getcourse::build_client(&cred)?;
+        let first_week_start = getcourse::get_first_week_start(&client).await?;
+        let courses = crate::nju::getcourse::get_course_raw(&client).await?;
         let courses = crate::schedule::course::Course::batch_from_json(
             json::parse(&courses)?,
             hcal,
@@ -189,8 +190,9 @@ mod test {
     async fn test_to_calendar() {
         let hcal = HolidayCal::from_shuyz().await.unwrap();
         let auth = get_auth().await;
-        let first_week_start = getcourse::get_first_week_start(&auth).await.unwrap();
-        let courses = getcourse::get_course_raw(&auth).await.unwrap();
+        let client = getcourse::build_client(&auth).unwrap();
+        let first_week_start = getcourse::get_first_week_start(&client).await.unwrap();
+        let courses = getcourse::get_course_raw(&client).await.unwrap();
         let courses = json::parse(&courses).unwrap();
         let courses = &courses["datas"]["cxxszhxqkb"]["rows"];
 

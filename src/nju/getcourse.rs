@@ -1,15 +1,16 @@
 use super::login::LoginCredential;
 use chrono::{Datelike, Days, Local, NaiveDate};
-use json;
+use json::{self, JsonValue};
 use std::collections::HashMap;
 use std::sync::Arc;
 // use crate::schedule::course::Course;
+use super::super::schedule::course::Course;
 use anyhow::anyhow;
 use log::debug;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
-fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware, anyhow::Error> {
+pub fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware, anyhow::Error> {
     let cookie_store = Arc::new(reqwest::cookie::Jar::default());
     cookie_store.add_cookie_str(
         &format!("CASTGC={}", auth.castgc),
@@ -32,15 +33,8 @@ fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware, anyhow::
     Ok(client)
 }
 
-pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Error> {
-    let client = build_client(auth)?;
-
-    /* We'll be redirected to authserver. As we have CASTGC, we'll be
-     * thrown back immediately with the needed cookies.
-     * Then we'll get some needed cookies from ehallapp.nju.edu.cn.
-     *
-     * At last, we'll have enough cookies to request for all courses.
-     */
+async fn get_latest_semester(client: &ClientWithMiddleware) -> Result<String, anyhow::Error> {
+    // Access a random page to get some required cookies when accessing APIs
     let _ = client
         .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
         .send()
@@ -52,14 +46,32 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
         .await?
         .text()
         .await?;
+
     let semesters = json::parse(&semesters)?;
     let latest_semester = semesters["datas"]["dqxnxq"]["rows"][0]["DM"]
         .as_str()
         .ok_or("Cannot resolve the latest semester")
         .map_err(anyhow::Error::msg)?;
 
+    Ok(latest_semester.into())
+}
+
+pub async fn get_course_raw(client: &ClientWithMiddleware) -> Result<String, anyhow::Error> {
+    /* We'll be redirected to authserver. As we have CASTGC, we'll be
+     * thrown back immediately with the needed cookies.
+     * Then we'll get some needed cookies from ehallapp.nju.edu.cn.
+     *
+     * At last, we'll have enough cookies to request for all courses.
+     */
+    let _ = client
+        .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
+        .send()
+        .await?;
+
+    let latest_semester = get_latest_semester(client).await?;
+
     let form = HashMap::from([
-        ("XNXQDM", latest_semester),
+        ("XNXQDM", latest_semester.as_str()),
         ("pageSize", "9999"),
         ("pageNumber", "1"),
     ]);
@@ -75,8 +87,10 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
     Ok(resp)
 }
 
-pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, anyhow::Error> {
-    let client = build_client(auth)?;
+pub async fn get_first_week_start(
+    client: &ClientWithMiddleware,
+) -> Result<NaiveDate, anyhow::Error> {
+    // let client = build_client(auth)?;
 
     let week_info = client
         .get("https://wx.nju.edu.cn/njukb/wap/default/classes")
@@ -118,9 +132,29 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, a
     Ok(first_week_start)
 }
 
+pub async fn get_final_exams_raw(client: &ClientWithMiddleware) -> Result<String, anyhow::Error> {
+    let semester = get_latest_semester(client).await?;
+
+    let form = HashMap::from([(
+        "requestParamStr",
+        format!("{{\"XNXQDM\":\"{}\"}}", &semester),
+    )]);
+
+    let exams = client
+        .post("https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do")
+        .form(&form)
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    Ok(exams)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use dotenv;
     use std::fs::File;
     use std::io::stdin;
     use std::io::Write;
@@ -128,7 +162,10 @@ mod test {
     use tokio;
 
     async fn get_auth() -> LoginCredential {
-        LoginCredential::from_login("NotGonnaTellYou", "PutYourOwnHere", |content| async move {
+        // Put your own username and password in .env
+        let username = dotenv::var("USERNAME").unwrap();
+        let password = dotenv::var("PASSWORD").unwrap();
+        LoginCredential::from_login(&username, &password, |content| async move {
             let mut file = File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();
             Command::new("open").arg("captcha.jpeg").spawn().unwrap();
@@ -159,8 +196,17 @@ mod test {
     #[tokio::test]
     async fn get_first_week_start_works() {
         let auth = get_auth().await;
-        let result = get_first_week_start(&auth).await.unwrap();
+        let client = build_client(&auth).unwrap();
+        let result = get_first_week_start(&client).await.unwrap();
         println!("{}", result);
         assert_eq!(result, NaiveDate::from_ymd_opt(2024, 9, 2).unwrap());
+    }
+
+    #[tokio::test]
+    async fn get_exams_works() {
+        let auth = get_auth().await;
+        let client = build_client(&auth).unwrap();
+        let result = get_final_exams_raw(&client).await.unwrap();
+        println!("Exams: {}", result);
     }
 }
