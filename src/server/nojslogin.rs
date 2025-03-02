@@ -1,3 +1,5 @@
+//! HTTP handlers for the no-js login
+
 use super::error::AppError;
 use super::server::AppState;
 

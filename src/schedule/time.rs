@@ -1,11 +1,12 @@
-/* Some utilities to deal with time
- * Time: packing hour and minute
- * TimeSpan: packing start and end time
- * CourseTime: packing time span, weekday and week
- */
+//! Some utilities to deal with time
+//! Time: packing hour and minute
+//! TimeSpan: packing start and end time
+//! CourseTime: packing time span, weekday and week
+
 use anyhow::anyhow;
 use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone};
 
+/// Time: packing hour and minute
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Time {
     hour: u8,
@@ -18,6 +19,7 @@ impl Time {
     }
 }
 
+/// TimeSpan: packing start and end time
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct TimeSpan {
     pub start: Time,
@@ -56,6 +58,7 @@ impl TimeSpan {
     }
 }
 
+/// CourseTime: packing time span, weekday and week
 #[derive(Clone)]
 pub struct CourseTime {
     span: TimeSpan,

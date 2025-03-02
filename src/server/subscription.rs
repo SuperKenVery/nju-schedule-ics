@@ -34,7 +34,7 @@ pub async fn get_ical(
             Ok((headers, cal))
         }
         Err(e) => {
-            cookie_db.remove_uuid(&uuid).await?;
+            // cookie_db.remove_uuid(&uuid).await?;
             Err(e.into())
         }
     }

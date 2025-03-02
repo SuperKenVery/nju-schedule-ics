@@ -5,6 +5,7 @@ use chrono::NaiveDate;
 use json;
 use json::JsonValue::Array as jsonArray;
 
+/// An intermediate representation of a course
 #[derive(Debug)]
 pub struct Course {
     pub name: String,

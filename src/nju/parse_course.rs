@@ -147,6 +147,5 @@ impl Course {
         first_week_start: NaiveDate,
     ) -> Result<Self, anyhow::Error> {
         let start = raw["KSRQ"];
-        ß
     }
 }
