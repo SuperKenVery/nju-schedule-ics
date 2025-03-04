@@ -25,7 +25,9 @@
 
 ## 使用提供的服务器
 
-[这里](https://pi.tail32664.ts.net/schedule/)
+[这里](https://n100.tail32664.ts.net/schedule/)
+
+[旧的（连不上了）](https://pi.tail32664.ts.net/schedule/)
 
 ## 隐私与数据安全
 
