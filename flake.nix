@@ -75,7 +75,7 @@
           src = (pkgs.lib.cleanSource ./.);
         } ;
 
-        cargoSha256 = "sha256-IAHdSEQZheG1gXwytmymnxoJVuJtxZho3/6n0RzGjb0=";
+        cargoHash = "sha256-IAHdSEQZheG1gXwytmymnxoJVuJtxZho3/6n0RzGjb0=";
         buildInputs = []  ++
           (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
             SystemConfiguration
@@ -86,7 +86,9 @@
         nativeBuildInputs = (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           pkg-config
         ]));
-        doCheck=false;
+        doCheck = false;
+        buildType = "debug";
+        dontStrip = true;
       };
 
       docker = pkgs.dockerTools.buildImage {
