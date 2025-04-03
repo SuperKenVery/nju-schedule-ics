@@ -1515,6 +1515,7 @@ dependencies = [
  "reqwest-retry",
  "scraper",
  "serde",
+ "serde_json",
  "sqlx",
  "time",
  "tl",
@@ -2336,11 +2337,12 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.114"
+version = "1.0.140"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5f09b1bd632ef549eaa9f60a1f8de742bdbc698e6cee2095fc84dde5f549ae0"
+checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
 dependencies = [
  "itoa 1.0.10",
+ "memchr",
  "ryu",
  "serde",
 ]

@@ -1,0 +1,9 @@
+// Static tasks configuration.
+//
+// Example:
+[
+  {
+    "label": "Start dev server at 8899",
+    "command": "cargo run -- --config ./config.toml"
+  }
+]

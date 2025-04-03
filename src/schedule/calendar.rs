@@ -5,6 +5,7 @@ use super::{course::Course, holidays::HolidayCal};
 use crate::nju::getcourse;
 use crate::nju::login::LoginCredential;
 use anyhow::anyhow;
+use anyhow::Result;
 use chrono::NaiveDate;
 use ics::{
     components::{Parameter, Property},
@@ -25,7 +26,7 @@ impl<'a> Event<'a> {
         course: &Course,
         first_week_start: NaiveDate,
         tzid: &'a str,
-    ) -> Result<Vec<Event<'a>>, anyhow::Error> {
+    ) -> Result<Vec<Event<'a>>> {
         const TIME_FMT: &str = "%Y%m%dT%H%M%S";
 
         let mut results = vec![];
@@ -88,10 +89,7 @@ impl<'a> Calendar<'a> {
         Self(cal)
     }
 
-    pub async fn from_login(
-        cred: LoginCredential,
-        hcal: &HolidayCal,
-    ) -> Result<Calendar<'a>, anyhow::Error> {
+    pub async fn from_login(cred: LoginCredential, hcal: &HolidayCal) -> Result<Calendar<'a>> {
         let first_week_start = getcourse::get_first_week_start(&cred).await?;
         let courses = crate::nju::getcourse::get_course_raw(&cred).await?;
         let courses = crate::schedule::course::Course::batch_from_json(
@@ -106,7 +104,7 @@ impl<'a> Calendar<'a> {
         let events = courses
             .iter()
             .map(|c| Event::from_course(c, first_week_start, tzid))
-            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?
+            .collect::<Result<Vec<Vec<Event>>>>()?
             .concat();
 
         let mut calendar = Self::with_events(events);
@@ -115,7 +113,7 @@ impl<'a> Calendar<'a> {
         Ok(calendar)
     }
 
-    pub async fn from_test() -> Result<Calendar<'a>, anyhow::Error> {
+    pub async fn from_test() -> Result<Calendar<'a>> {
         let first_week_start = NaiveDate::from_ymd_opt(2024, 9, 2)
             .ok_or(anyhow!("Failed to construct first_week_start NaiveDate"))?;
 
@@ -133,7 +131,7 @@ impl<'a> Calendar<'a> {
         let events = courses
             .iter()
             .map(|c| Event::from_course(c, first_week_start, tzid))
-            .collect::<Result<Vec<Vec<Event>>, anyhow::Error>>()?
+            .collect::<Result<Vec<Vec<Event>>>>()?
             .concat();
 
         let mut calendar = Self::with_events(events);
@@ -142,7 +140,7 @@ impl<'a> Calendar<'a> {
         Ok(calendar)
     }
 
-    pub fn to_bytes(&self) -> Result<Vec<u8>, anyhow::Error> {
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
         let cal = &self.0;
         let mut buf = vec![];
         let writer = std::io::Cursor::new(&mut buf);

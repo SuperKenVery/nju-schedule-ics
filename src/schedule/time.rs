@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use anyhow::Result;
 use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone};
 
 /// Time: packing hour and minute
@@ -26,7 +27,7 @@ impl TimeSpan {
         Self { start, end }
     }
 
-    pub fn from_course_index(idx: u8) -> Result<TimeSpan, anyhow::Error> {
+    pub fn from_course_index(idx: u8) -> Result<TimeSpan> {
         match idx {
             1 => Ok(TimeSpan::new(Time::new(8, 0), Time::new(8, 50))),
             2 => Ok(TimeSpan::new(Time::new(9, 0), Time::new(9, 50))),
@@ -45,7 +46,7 @@ impl TimeSpan {
         }
     }
 
-    pub fn from_course_index_range(start: u8, end: u8) -> Result<TimeSpan, anyhow::Error> {
+    pub fn from_course_index_range(start: u8, end: u8) -> Result<TimeSpan> {
         let start = Self::from_course_index(start)?;
         let end = Self::from_course_index(end)?;
 
@@ -66,7 +67,7 @@ impl CourseTime {
         Self { span, day, week }
     }
 
-    pub fn to_naivedate(&self, first_week_start: NaiveDate) -> Result<NaiveDate, anyhow::Error> {
+    pub fn to_naivedate(&self, first_week_start: NaiveDate) -> Result<NaiveDate> {
         first_week_start
             .checked_add_days(Days::new(((self.week - 1) * 7) as u64))
             .and_then(|d| d.checked_add_days(Days::new((self.day - 1) as u64)))
@@ -76,7 +77,7 @@ impl CourseTime {
     pub fn to_datetime(
         &self,
         first_week_start: NaiveDate,
-    ) -> Result<(DateTime<Local>, DateTime<Local>), anyhow::Error> {
+    ) -> Result<(DateTime<Local>, DateTime<Local>)> {
         let [start, end] = [self.span.start, self.span.end];
 
         let date = self.to_naivedate(first_week_start)?;

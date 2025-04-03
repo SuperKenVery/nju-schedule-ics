@@ -1,4 +1,5 @@
 use crate::nju::login::{LoginCredential, LoginOperation};
+use anyhow::Result;
 use log::error;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use std::sync::Arc;
@@ -17,7 +18,7 @@ pub struct CookieDb {
 }
 
 impl CookieDb {
-    pub async fn new(path: &str) -> Result<Self, anyhow::Error> {
+    pub async fn new(path: &str) -> Result<Self> {
         let options = SqliteConnectOptions::from_str(path)?.create_if_missing(true);
 
         let pool = SqlitePoolOptions::new()
@@ -44,7 +45,7 @@ impl CookieDb {
         Ok(CookieDb { pool, login_ops })
     }
 
-    async fn insert<K, V>(&mut self, key: K, value: V) -> Result<(), anyhow::Error>
+    async fn insert<K, V>(&mut self, key: K, value: V) -> Result<()>
     where
         K: ToString,
         V: ToString,
@@ -60,7 +61,7 @@ impl CookieDb {
         Ok(())
     }
 
-    async fn get<K>(&self, key: K) -> Result<Option<String>, anyhow::Error>
+    async fn get<K>(&self, key: K) -> Result<Option<String>>
     where
         K: ToString,
     {
@@ -84,7 +85,7 @@ impl CookieDb {
         }
     }
 
-    async fn get_all(&self) -> Result<Vec<(String, String, OffsetDateTime)>, anyhow::Error> {
+    async fn get_all(&self) -> Result<Vec<(String, String, OffsetDateTime)>> {
         // Used to clean up unused cookies, so don't update last_access here
 
         let rows: Vec<(String, String, OffsetDateTime)> =
@@ -96,7 +97,7 @@ impl CookieDb {
     }
 
     /// Create a new login session
-    pub async fn new_session(&mut self) -> Result<String, anyhow::Error> {
+    pub async fn new_session(&mut self) -> Result<String> {
         let mut session = Uuid::new_v4().to_string();
 
         while let Ok(Some(_)) = self.get(&session).await {
@@ -112,7 +113,7 @@ impl CookieDb {
     }
 
     /// Get the captcha for a login session
-    pub async fn get_session_captcha(&self, session: &str) -> Result<Vec<u8>, anyhow::Error> {
+    pub async fn get_session_captcha(&self, session: &str) -> Result<Vec<u8>> {
         if let (
             _last_access,
             LoginOperation::WaitingVerificationCode {
@@ -140,7 +141,7 @@ impl CookieDb {
         username: &str,
         password: &str,
         captcha_answer: &str,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<()> {
         let o = &self
             .login_ops
             .get(session)
@@ -165,7 +166,7 @@ impl CookieDb {
     }
 
     /// Clean up login operations older than 5 minutes
-    async fn cleanup_login_op(&mut self) -> Result<(), anyhow::Error> {
+    async fn cleanup_login_op(&mut self) -> Result<()> {
         let now = OffsetDateTime::now_utc();
         let mut to_remove = Vec::new();
 
@@ -182,7 +183,7 @@ impl CookieDb {
         Ok(())
     }
 
-    pub async fn remove_uuid(&self, uuid: &str) -> Result<(), anyhow::Error> {
+    pub async fn remove_uuid(&self, uuid: &str) -> Result<()> {
         sqlx::query("DELETE FROM castgc WHERE key = ?")
             .bind(uuid)
             .execute(&self.pool)
@@ -192,7 +193,7 @@ impl CookieDb {
     }
 
     /// Clean up cookies older than 1 year
-    async fn cleanup_cookie_db(&self) -> Result<(), anyhow::Error> {
+    async fn cleanup_cookie_db(&self) -> Result<()> {
         let now = OffsetDateTime::now_utc();
         let year = Duration::days(365);
         let rows = self.get_all().await?;

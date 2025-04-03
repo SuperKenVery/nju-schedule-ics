@@ -1,15 +1,15 @@
 use super::login::LoginCredential;
-use chrono::{Datelike, Days, Local, NaiveDate};
-use json;
+use chrono::{Datelike, Days, Local, NaiveDate, Utc};
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;
 // use crate::schedule::course::Course;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context, Result};
 use log::debug;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
-fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware, anyhow::Error> {
+fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware> {
     let cookie_store = Arc::new(reqwest::cookie::Jar::default());
     cookie_store.add_cookie_str(
         &format!("CASTGC={}", auth.castgc),
@@ -32,7 +32,7 @@ fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware, anyhow::
     Ok(client)
 }
 
-pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Error> {
+pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
     let client = build_client(auth)?;
 
     /* We'll be redirected to authserver. As we have CASTGC, we'll be
@@ -46,17 +46,15 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
         .send()
         .await?;
 
-    let semesters = client
+    let semesters: JsonValue = client
         .post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
         .send()
         .await?
-        .text()
+        .json()
         .await?;
-    let semesters = json::parse(&semesters)?;
     let latest_semester = semesters["datas"]["dqxnxq"]["rows"][0]["DM"]
         .as_str()
-        .ok_or("Cannot resolve the latest semester")
-        .map_err(anyhow::Error::msg)?;
+        .ok_or(anyhow!("Cannot resolve the latest semester"))?;
 
     let form = HashMap::from([
         ("XNXQDM", latest_semester),
@@ -75,7 +73,7 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String, anyhow::Er
     Ok(resp)
 }
 
-pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, anyhow::Error> {
+pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
     let client = build_client(auth)?;
 
     // Get neccessary cookies
@@ -84,20 +82,48 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate, a
         .send()
         .await?;
 
-    let semester_info_raw = client
+    let semester_info: JsonValue = client
         .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxjcs.do")
         .send()
         .await?
-        .text()
-        .await?;
+        .json()
+        .await
+        .context("Parsing json from NJU semester info")?;
 
-    let semester_info = json::parse(&semester_info_raw);
-    let Ok(semester_info) = semester_info else {
-        debug!("Cannot parse semester info: {}", semester_info_raw);
-        return Err(anyhow!("Failed to parse semester info"));
-    };
+    let current_date = Utc::now().naive_local().date();
+    let semester_start = semester_info["datas"]["cxjcs"]["rows"]
+        .as_array()
+        .ok_or(anyhow!("Semester info not array"))?
+        .iter()
+        .map(parse_semester_info)
+        .find_map(|date| {
+            let date = date.ok()?;
+            if current_date.signed_duration_since(date).num_seconds() > 0 {
+                Some(date)
+            } else {
+                None
+            }
+        })
+        .ok_or(anyhow!(
+            "No semester start found, semester info: {semester_info:#?}"
+        ))?;
 
-    let name = &semester_info["datas"]["cxjcs"]["rows"][0]["XQKSRQ"]; // "2025-02-17 00:00:00"
+    Ok(semester_start)
+}
+
+/// Parse semester info from NJU backend into a date
+///
+/// Argument:
+///     - info: &JsonValue - A semester info from NJU backend
+///         - The backend returns all semesters; you should take one and feed to this function.
+///         - The json structure should be like:
+/// ```json
+/// {
+///     "XQKSRQ": "2025-02-17 00:00:00"
+/// }
+/// ```
+fn parse_semester_info(info: &JsonValue) -> Result<NaiveDate> {
+    let name = &info["XQKSRQ"]; // "2025-02-17 00:00:00"
     let [date, _time] = name
         .as_str()
         .ok_or(anyhow!("Cannot read semester and week name"))?

@@ -1,6 +1,7 @@
 use super::holidays::HolidayCal;
 use super::time::{CourseTime, TimeSpan};
 use anyhow::anyhow;
+use anyhow::Result;
 use chrono::NaiveDate;
 use json;
 use json::JsonValue::Array as jsonArray;
@@ -20,7 +21,7 @@ impl Course {
         raw: json::JsonValue,
         hcal: &HolidayCal,
         first_week_start: NaiveDate,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> Result<Self> {
         // Notes
         let line_or_empty = |key: &str| {
             let content = raw[key].as_str();
@@ -110,7 +111,7 @@ impl Course {
                         Some(t) // Propagate error to `collect`
                     }
                 })
-                .collect::<Result<Vec<_>, anyhow::Error>>()?
+                .collect::<Result<Vec<_>>>()?
         } else {
             // 自由时间的课程，开始结束会设为0
             vec![]
@@ -131,7 +132,7 @@ impl Course {
         raw: json::JsonValue,
         hcal: &HolidayCal,
         first_week_start: NaiveDate,
-    ) -> Result<Vec<Self>, anyhow::Error> {
+    ) -> Result<Vec<Self>> {
         let rows = &raw["datas"]["cxxszhxqkb"]["rows"];
         let jsonArray(rows) = rows else {
             return Err("Not an array??").map_err(anyhow::Error::msg);
@@ -139,7 +140,7 @@ impl Course {
         let courses = rows
             .into_iter()
             .map(|c| Self::from_json(c.clone(), hcal, first_week_start))
-            .collect::<Result<Vec<_>, anyhow::Error>>()?;
+            .collect::<Result<Vec<_>>>()?;
         Ok(courses)
     }
 }

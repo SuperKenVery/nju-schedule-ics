@@ -1,3 +1,4 @@
+use anyhow::Result;
 use axum::{
     routing::{get, post},
     Router,
@@ -27,10 +28,7 @@ pub struct AppState {
     pub hcal: HolidayCal,
 }
 
-pub async fn build_app(
-    db: Arc<Mutex<db::CookieDb>>,
-    site_url: String,
-) -> Result<Router, anyhow::Error> {
+pub async fn build_app(db: Arc<Mutex<db::CookieDb>>, site_url: String) -> Result<Router> {
     let state = Arc::new(AppState {
         cookie_db: db.clone(),
         site_url,

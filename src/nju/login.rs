@@ -2,6 +2,7 @@ use aes::{
     cipher::{block_padding::Pkcs7, BlockEncryptMut, KeyIvInit},
     Aes128,
 };
+use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
 use cbc;
 use core::ops::Deref;
@@ -79,7 +80,7 @@ impl LoginCredential {
         username: &str,
         password: &str,
         captcha_cb: impl Fn(Vec<u8>) -> F,
-    ) -> Result<LoginCredential, anyhow::Error>
+    ) -> Result<LoginCredential>
     where
         F: Future<Output = String>,
     {
@@ -113,7 +114,7 @@ pub enum LoginOperation {
 }
 
 impl LoginOperation {
-    pub async fn start() -> Result<Self, anyhow::Error> {
+    pub async fn start() -> Result<Self> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
         headers.insert(
@@ -169,7 +170,7 @@ impl LoginOperation {
         username: &str,
         password: &str,
         captcha_answer: &str,
-    ) -> Result<Self, anyhow::Error> {
+    ) -> Result<Self> {
         let Self::WaitingVerificationCode {
             client,
             captcha: _,

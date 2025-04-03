@@ -3,6 +3,7 @@
 use super::error::AppError;
 use super::server::AppState;
 
+use anyhow::Result;
 use axum::{
     extract::{Form, State},
     http::{header, status::StatusCode, HeaderMap},
@@ -60,7 +61,7 @@ pub async fn login(
                 .map_err(anyhow::Error::msg)?;
             Ok((k, v))
         })
-        .collect::<Result<Vec<(&str, &str)>, anyhow::Error>>()?
+        .collect::<Result<Vec<(&str, &str)>>>()?
         .into_iter();
     let session = cookies
         .filter(|(k, _v)| k == &"SESSION")

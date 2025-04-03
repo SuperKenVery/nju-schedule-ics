@@ -1,7 +1,9 @@
 use anyhow::anyhow;
+use anyhow::Result;
 use chrono::{Datelike, Days, Local, NaiveDate};
-use json;
 use reqwest;
+use serde_json;
+use serde_json::Value as JsonValue;
 
 use std::collections::HashSet;
 
@@ -23,21 +25,21 @@ pub struct HolidayCal {
 }
 
 impl HolidayCal {
-    pub async fn from_shuyz() -> Result<Self, anyhow::Error> {
-        let holidays_json = reqwest::get(
+    pub async fn from_shuyz() -> Result<Self> {
+        let holidays_json: JsonValue = reqwest::get(
             "https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json",
         )
         .await?
-        .text()
+        .json()
         .await?;
 
-        let holidays_json = json::parse(&holidays_json)?;
-
         let year = Local::now().year().to_string();
-        let year_holiday = &holidays_json["Years"][year];
+        let year_holiday = holidays_json["Years"][year]
+            .as_array()
+            .ok_or(anyhow!("Holiday API year not array"))?;
 
         let holidays = year_holiday
-            .members()
+            .iter()
             .map(|holiday| {
                 let start = NaiveDate::parse_from_str(
                     holiday["StartDate"]
@@ -58,18 +60,20 @@ impl HolidayCal {
                             .checked_add_days(Days::new(i as u64))
                             .ok_or(anyhow!("Invalid date calculated from holiday api"))
                     })
-                    .collect::<Result<Vec<_>, anyhow::Error>>()
+                    .collect::<Result<Vec<_>>>()
             })
-            .collect::<Result<Vec<Vec<_>>, anyhow::Error>>()?
+            .collect::<Result<Vec<Vec<_>>>>()?
             .concat()
             .into_iter()
             .collect();
 
         let compdays = year_holiday
-            .members()
+            .iter()
             .map(|holiday| {
                 holiday["CompDays"]
-                    .members()
+                    .as_array()
+                    .ok_or(anyhow!("Holiday CompDays not array"))?
+                    .iter()
                     .map(|date| {
                         Ok(NaiveDate::parse_from_str(
                             date.as_str()
@@ -77,9 +81,9 @@ impl HolidayCal {
                             "%Y-%m-%d",
                         )?)
                     })
-                    .collect::<Result<Vec<_>, anyhow::Error>>()
+                    .collect::<Result<Vec<_>>>()
             })
-            .collect::<Result<Vec<Vec<_>>, anyhow::Error>>()?
+            .collect::<Result<Vec<Vec<_>>>>()?
             .concat()
             .into_iter()
             .collect();
