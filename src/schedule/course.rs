@@ -3,8 +3,7 @@ use super::time::{CourseTime, TimeSpan};
 use anyhow::anyhow;
 use anyhow::Result;
 use chrono::NaiveDate;
-use json;
-use json::JsonValue::Array as jsonArray;
+use serde_json::Value as JsonValue;
 
 /// An intermediate representation of a course
 #[derive(Debug)]
@@ -18,7 +17,7 @@ pub struct Course {
 
 impl Course {
     pub fn from_json(
-        raw: json::JsonValue,
+        raw: JsonValue,
         hcal: &HolidayCal,
         first_week_start: NaiveDate,
     ) -> Result<Self> {
@@ -42,11 +41,9 @@ impl Course {
         };
         let class = line_or_empty("JXBMC");
         let teacher = line_or_empty("JSHS");
-        let points = Into::<f32>::into(
-            raw["XF"]
-                .as_number()
-                .ok_or(anyhow!("Cannot extract points"))?,
-        );
+        let points = raw["XF"]
+            .as_f64()
+            .ok_or(anyhow!("Cannot extract points of course"))?;
         let points = format!("{}学分\n", points);
 
         // Name and location
@@ -129,14 +126,16 @@ impl Course {
     }
 
     pub fn batch_from_json(
-        raw: json::JsonValue,
+        raw: JsonValue,
         hcal: &HolidayCal,
         first_week_start: NaiveDate,
     ) -> Result<Vec<Self>> {
-        let rows = &raw["datas"]["cxxszhxqkb"]["rows"];
-        let jsonArray(rows) = rows else {
-            return Err("Not an array??").map_err(anyhow::Error::msg);
-        };
+        let rows = &raw["datas"]["cxxszhxqkb"]["rows"]
+            .as_array()
+            .ok_or(anyhow!(
+                "Expected array in course_json['datas']['cxxszhxqkb']['rows'], got {raw:#?}"
+            ))?;
+
         let courses = rows
             .into_iter()
             .map(|c| Self::from_json(c.clone(), hcal, first_week_start))

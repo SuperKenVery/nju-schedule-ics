@@ -93,7 +93,7 @@ impl<'a> Calendar<'a> {
         let first_week_start = getcourse::get_first_week_start(&cred).await?;
         let courses = crate::nju::getcourse::get_course_raw(&cred).await?;
         let courses = crate::schedule::course::Course::batch_from_json(
-            json::parse(&courses)?,
+            serde_json::from_str(&courses)?,
             hcal,
             first_week_start,
         )?;
@@ -120,7 +120,7 @@ impl<'a> Calendar<'a> {
         let hcal = HolidayCal::from_shuyz().await?;
         let courses = std::fs::read_to_string("src/nju/example.json")?;
         let courses = crate::schedule::course::Course::batch_from_json(
-            json::parse(&courses)?,
+            serde_json::from_str(&courses)?,
             &hcal,
             first_week_start,
         )?;

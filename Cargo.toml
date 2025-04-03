@@ -13,7 +13,6 @@ cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
 clap = { version = "4.4.2", features = ["derive"] }
 ics = "0.5.8"
-json = "0.12.4"
 reqwest = { version = "0.11.18", features = [
     "cookie_store",
     "cookies",
