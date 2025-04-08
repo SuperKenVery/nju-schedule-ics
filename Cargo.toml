@@ -24,7 +24,7 @@ serde = { version = "1.0.188", features = ["derive"] }
 sqlx = { version = "0.8.1", features = ["sqlite", "runtime-tokio", "time"] }
 time = { version = "0.3.36", features = ["std"] }
 tl = "0.7.7"
-tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.38.2", features = ["macros", "rt-multi-thread"] }
 toml = "0.8.10"
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
 scraper = "0.13"
