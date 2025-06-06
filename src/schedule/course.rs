@@ -143,10 +143,6 @@ impl Course {
         let days = (date - first_week_start).num_days();
         let week = days / 7 + 1;
         let weekday = days % 7 + 1;
-        println!(
-            "Got date {:?}, days from first_week_start={}, week={}, weekday={}, first_week_start={:?}",
-            date, days, week, weekday, first_week_start
-        );
 
         // Something like `16:00`
         let start_time_str = raw["KSKSSJ"]
