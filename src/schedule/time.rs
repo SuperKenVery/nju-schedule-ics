@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, Datelike, Days, Local, NaiveDate, TimeZone};
 
@@ -12,6 +13,14 @@ pub struct Time {
 impl Time {
     pub fn new(hour: u8, minute: u8) -> Self {
         Self { hour, minute }
+    }
+
+    /// Parse time like `16:00`
+    pub fn from_str(raw: &str) -> Result<Self> {
+        let (hour_str, minute_str) = raw.split_once(':').context("Splitting time with `:`")?; // Basic error handling, assumes valid input for now
+        let hour = hour_str.parse()?; // Assumes valid u8
+        let minute = minute_str.parse()?; // Assumes valid u8
+        Ok(Time { hour, minute })
     }
 }
 

@@ -97,11 +97,20 @@ impl<'a> Calendar<'a> {
             hcal,
             first_week_start,
         )?;
+        let final_exams = crate::nju::getcourse::get_final_exams_raw(&cred).await?;
+        let exams = crate::schedule::course::Course::batch_from_final_exam_json(
+            final_exams,
+            first_week_start,
+        )?;
+
+        let mut all_events = Vec::with_capacity(courses.len() + exams.len());
+        all_events.extend(courses);
+        all_events.extend(exams);
 
         let tzid = "NJU";
         let tz = TimeZone::standard(tzid, Standard::new("19710101T000000", "+0800", "+0800"));
 
-        let events = courses
+        let events = all_events
             .iter()
             .map(|c| Event::from_course(c, first_week_start, tzid))
             .collect::<Result<Vec<Vec<Event>>>>()?
