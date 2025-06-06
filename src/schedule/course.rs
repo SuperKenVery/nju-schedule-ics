@@ -1,7 +1,8 @@
 use super::holidays::HolidayCal;
+use super::time::Time;
 use super::time::{CourseTime, TimeSpan};
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::{anyhow, Context};
 use chrono::NaiveDate;
 use serde_json::Value as JsonValue;
 
@@ -125,6 +126,44 @@ impl Course {
         })
     }
 
+    pub fn from_final_exam_json(raw: JsonValue, first_week_start: NaiveDate) -> Result<Self> {
+        let course_name = raw["KCM"]
+            .as_str()
+            .context("Cannot get course name in final exam")?
+            .to_string();
+        let teacher_name = raw["ZJJSXM"]
+            .as_str()
+            .context("Cannot get teacher name in final exam")?;
+
+        // Something like `2025-06-22`
+        let date_str = raw["KSRQ"].as_str().context("Cannot get final exam date")?;
+        let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+            .context("Failed to parse final exam date")?;
+
+        let days = (date - first_week_start).num_days();
+        let week = days / 7 + 1;
+        let weekday = days % 7 + 1;
+
+        // Something like `16:00`
+        let start_time_str = raw["KSKSSJ"]
+            .as_str()
+            .context("Cannot get exam start time")?;
+        let end_time_str = raw["KSJSSJ"].as_str().context("Cannot get exam end time")?;
+        let start_time = Time::from_str(start_time_str)?;
+        let end_time = Time::from_str(end_time_str)?;
+        let exam_timespan = TimeSpan::new(start_time, end_time);
+
+        Ok(Course {
+            name: format!("{} 期末考试", course_name),
+            location: raw["JASMC"]
+                .as_str()
+                .context("Cannot get location in final exam")?
+                .to_string(),
+            notes: format!("任课教师：{}", teacher_name),
+            time: vec![CourseTime::new(exam_timespan, weekday as u8, week as u8)],
+        })
+    }
+
     pub fn batch_from_json(
         raw: JsonValue,
         hcal: &HolidayCal,
@@ -141,6 +180,22 @@ impl Course {
             .map(|c| Self::from_json(c.clone(), hcal, first_week_start))
             .collect::<Result<Vec<_>>>()?;
         Ok(courses)
+    }
+
+    pub fn batch_from_final_exam_json(
+        raw: JsonValue,
+        first_week_start: NaiveDate,
+    ) -> Result<Vec<Self>> {
+        let rows = raw["datas"]["cxxsksap"]["rows"]
+            .as_array()
+            .context("Cannot extract rows from final exam raw")?;
+
+        let exams = rows
+            .into_iter()
+            .map(|exam| Self::from_final_exam_json(exam.clone(), first_week_start))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(exams)
     }
 }
 

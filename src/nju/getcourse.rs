@@ -9,7 +9,7 @@ use log::debug;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 
-fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware> {
+async fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware> {
     let cookie_store = Arc::new(reqwest::cookie::Jar::default());
     cookie_store.add_cookie_str(
         &format!("CASTGC={}", auth.castgc),
@@ -29,13 +29,9 @@ fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware> {
         .with(RetryTransientMiddleware::new_with_policy(retry))
         .build();
 
-    Ok(client)
-}
-
-pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
-    let client = build_client(auth)?;
-
-    /* We'll be redirected to authserver. As we have CASTGC, we'll be
+    /* Get the cookies for ehall.nju.edu.cn
+     *
+     * We'll be redirected to authserver. As we have CASTGC, we'll be
      * thrown back immediately with the needed cookies.
      * Then we'll get some needed cookies from ehallapp.nju.edu.cn.
      *
@@ -45,6 +41,12 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
         .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
         .send()
         .await?;
+
+    Ok(client)
+}
+
+pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
+    let client = build_client(auth).await?;
 
     let semesters: JsonValue = client
         .post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
@@ -73,14 +75,29 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
     Ok(resp)
 }
 
-pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
-    let client = build_client(auth)?;
+pub async fn get_final_exams_raw(auth: &LoginCredential) -> Result<JsonValue> {
+    let client = build_client(auth).await?;
 
-    // Get neccessary cookies
-    let _ = client
-        .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
+    let form = HashMap::from([(
+        "requestParamStr",
+        r#"{"XNXQDM":"2024-2025-2","*order":"-KSRQ,-KSSJMS"}"#,
+        // TODO: Change the semester here!
+    )]);
+
+    let final_exam_info: JsonValue = client
+        .post("https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do")
+        .form(&form)
         .send()
-        .await?;
+        .await?
+        .json()
+        .await
+        .context("Parsing json of final exam")?;
+
+    Ok(final_exam_info)
+}
+
+pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
+    let client = build_client(auth).await?;
 
     let semester_info: JsonValue = client
         .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxjcs.do")
