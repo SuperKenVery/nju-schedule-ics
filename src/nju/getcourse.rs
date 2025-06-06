@@ -45,9 +45,7 @@ async fn build_client(auth: &LoginCredential) -> Result<ClientWithMiddleware> {
     Ok(client)
 }
 
-pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
-    let client = build_client(auth).await?;
-
+pub async fn get_curr_semester(client: &ClientWithMiddleware) -> Result<String> {
     let semesters: JsonValue = client
         .post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
         .send()
@@ -56,10 +54,17 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
         .await?;
     let latest_semester = semesters["datas"]["dqxnxq"]["rows"][0]["DM"]
         .as_str()
-        .ok_or(anyhow!("Cannot resolve the latest semester"))?;
+        .context("Cannot resolve the latest semester")?;
 
+    Ok(latest_semester.to_string())
+}
+
+pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
+    let client = build_client(auth).await?;
+
+    let curr_semester = get_curr_semester(&client).await?;
     let form = HashMap::from([
-        ("XNXQDM", latest_semester),
+        ("XNXQDM", curr_semester.as_str()),
         ("pageSize", "9999"),
         ("pageNumber", "1"),
     ]);
@@ -78,10 +83,13 @@ pub async fn get_course_raw(auth: &LoginCredential) -> Result<String> {
 pub async fn get_final_exams_raw(auth: &LoginCredential) -> Result<JsonValue> {
     let client = build_client(auth).await?;
 
+    let curr_semester = get_curr_semester(&client).await?;
     let form = HashMap::from([(
         "requestParamStr",
-        r#"{"XNXQDM":"2024-2025-2","*order":"-KSRQ,-KSSJMS"}"#,
-        // TODO: Change the semester here!
+        format!(
+            r#"{{"XNXQDM":"{}","*order":"-KSRQ,-KSSJMS"}}"#,
+            curr_semester
+        ),
     )]);
 
     let final_exam_info: JsonValue = client
