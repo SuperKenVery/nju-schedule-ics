@@ -157,7 +157,7 @@ impl Course {
             name: format!("{} 期末考试", course_name),
             location: raw["JASMC"]
                 .as_str()
-                .context("Cannot get location in final exam")?
+                .unwrap_or("无法获取考试地点")
                 .to_string(),
             notes: format!("任课教师：{}", teacher_name),
             time: vec![CourseTime::new(exam_timespan, weekday as u8, week as u8)],
