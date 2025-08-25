@@ -116,7 +116,6 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
         .context("Parsing json from NJU semester info")?;
 
     let current_date = Utc::now().naive_local().date();
-    println!("Current date: {:?}", current_date);
     let semester_start = semester_info["datas"]["cxjcs"]["rows"]
         .as_array()
         .ok_or(anyhow!("Semester info not array"))?
@@ -124,11 +123,6 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
         .map(parse_semester_info)
         .find_map(|date| {
             let date = date.ok()?;
-            println!(
-                "Evaluating date {:?}, diff={:?}",
-                date,
-                current_date.signed_duration_since(date).num_seconds()
-            );
             if current_date.signed_duration_since(date).num_seconds() >= 0 {
                 Some(date)
             } else {

@@ -115,7 +115,9 @@ mod test {
 
     #[tokio::test]
     async fn start_server() {
-        let db = db::CookieDb::new("sqlite://cookies.sqlite").await.unwrap();
+        let db = db::CookieDb::new("sqlite://cookies_local.sqlite")
+            .await
+            .unwrap();
         let db = Arc::new(Mutex::new(db));
 
         let app = build_app(db, "https://localhost:8899".to_string())
