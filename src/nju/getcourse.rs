@@ -196,7 +196,7 @@ mod test {
     #[tokio::test]
     async fn get_course_raw_works() {
         let auth = get_auth().await;
-        let client = build_client(&auth).unwrap();
+        let client = build_client(&auth).await.unwrap();
 
         let week_info = client
             .get("https://wx.nju.edu.cn/njukb/wap/default/classes")
