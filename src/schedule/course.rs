@@ -202,7 +202,6 @@ impl Course {
 #[cfg(test)]
 mod test {
     use super::*;
-    use json::JsonValue::Array as jsonArray;
     use std::fs::File;
     use std::io::Read;
 
@@ -219,9 +218,9 @@ mod test {
         file.read_to_string(&mut content).unwrap();
 
         // Parse it as json
-        let obj = json::parse(&content).unwrap();
+        let obj: serde_json::Value = serde_json::from_str(&content).unwrap();
         let rows = &obj["datas"]["cxxszhxqkb"]["rows"];
-        let jsonArray(rows) = rows else {
+        let Some(rows) = rows.as_array() else {
             panic!("Not an array??");
         };
         for c in rows {

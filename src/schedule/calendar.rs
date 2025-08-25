@@ -202,10 +202,10 @@ mod test {
         let auth = get_auth().await;
         let first_week_start = getcourse::get_first_week_start(&auth).await.unwrap();
         let courses = getcourse::get_course_raw(&auth).await.unwrap();
-        let courses = json::parse(&courses).unwrap();
+        let courses: serde_json::Value = serde_json::from_str(&courses).unwrap();
         let courses = &courses["datas"]["cxxszhxqkb"]["rows"];
 
-        let json::JsonValue::Array(courses) = courses else {
+        let Some(courses) = courses.as_array() else {
             panic!("Not an array??");
         };
 

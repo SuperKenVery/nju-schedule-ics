@@ -116,6 +116,7 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
         .context("Parsing json from NJU semester info")?;
 
     let current_date = Utc::now().naive_local().date();
+    println!("Current date: {:?}", current_date);
     let semester_start = semester_info["datas"]["cxjcs"]["rows"]
         .as_array()
         .ok_or(anyhow!("Semester info not array"))?
@@ -123,7 +124,12 @@ pub async fn get_first_week_start(auth: &LoginCredential) -> Result<NaiveDate> {
         .map(parse_semester_info)
         .find_map(|date| {
             let date = date.ok()?;
-            if current_date.signed_duration_since(date).num_seconds() > 0 {
+            println!(
+                "Evaluating date {:?}, diff={:?}",
+                date,
+                current_date.signed_duration_since(date).num_seconds()
+            );
+            if current_date.signed_duration_since(date).num_seconds() >= 0 {
                 Some(date)
             } else {
                 None
@@ -172,7 +178,7 @@ mod test {
     use tokio;
 
     async fn get_auth() -> LoginCredential {
-        LoginCredential::from_login("NotGonnaTellYou", "PutYourOwnHere", |content| async move {
+        LoginCredential::from_login("Username", "Password", |content| async move {
             let mut file = File::create("captcha.jpeg").unwrap();
             file.write_all(&content).unwrap();
             Command::new("open").arg("captcha.jpeg").spawn().unwrap();
@@ -205,6 +211,6 @@ mod test {
         let auth = get_auth().await;
         let result = get_first_week_start(&auth).await.unwrap();
         println!("{}", result);
-        assert_eq!(result, NaiveDate::from_ymd_opt(2024, 9, 2).unwrap());
+        assert_eq!(result, NaiveDate::from_ymd_opt(2025, 8, 25).unwrap());
     }
 }
