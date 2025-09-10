@@ -44,9 +44,9 @@
           # pkg-config
           # openssl
         ] ++
-        (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
-          SystemConfiguration
-        ])) ++
+        # (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
+        #   SystemConfiguration
+        # ])) ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
         ]));
@@ -77,9 +77,9 @@
 
         cargoHash = "sha256-R/EHkN+zvmFKSx1U5P8vFt8eOf7XPAoGFg0a0oMflc0=";
         buildInputs = []  ++
-          (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
-            SystemConfiguration
-          ])) ++
+          # (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
+          #   SystemConfiguration
+          # ])) ++
           (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
             openssl
           ]));
