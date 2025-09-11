@@ -10,12 +10,17 @@
 
     <div id="input-container" class="card center-children">
         <h1 id="title">南哪另一课表</h1>
+        
         <form action="./login" id="input-form" class="center-children" method="post">
             <input class="inputbox" name="username" placeholder="学号" type="text" id="username_input" />
             <input class="inputbox" name="password" placeholder="密码" type="password" id="password_input" />
             <input class="inputbox" id="captcha" name="captcha_answer" placeholder="验证码" type="text" />
             <img src="./captcha.png" id="captcha_image" />
-
+            
+            <select id="school-api-selector" class="inputbox" name="school_api">
+                <option value="NJU-batchelor">南京大学本科生</option>
+                <option value="NJU-postgraduate">南京大学研究生</option>
+            </select>
             <input type="submit" class="inputbox" id="login-button" value="登录" />
         </form>
 
