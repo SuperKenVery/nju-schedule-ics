@@ -37,10 +37,7 @@ pub async fn build_app(db: Arc<Mutex<db::CookieDb>>, site_url: String) -> Result
 
     let app = Router::new()
         .route("/", get(nojslogin::redirect_to_nojs))
-        // JSON API
-        .route("/get_login_session", get(login::new_login_session))
-        .route("/login", post(login::finish_login))
-        // 0-js login
+
         .route("/nojs/index", get(nojslogin::get_index_html))
         .route("/nojs/captcha.png", get(nojslogin::get_captcha_content))
         .route("/nojs/login", post(nojslogin::login))

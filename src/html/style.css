@@ -48,7 +48,7 @@ html,body {
     width: 50%;
     min-width: 300px;
     max-width: 500px;
-    height: 350px;
+    height: 400px;
 }
 
 #input-form {
@@ -56,11 +56,12 @@ html,body {
     height: 100%;
     display: grid;
     grid-template-columns: 8fr 2fr;
-    grid-template-rows: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
     grid-template-areas:
         "username username"
         "password password"
         "captcha captcha_img"
+        "school_api school_api"
         "login login";
     gap: 10px;
 }
@@ -90,6 +91,9 @@ html,body {
 }
 #login-button{
     grid-area: login;
+}
+#school-api-selector{
+    grid-area: school_api;
 }
 #declaration_div{
     width: 85%;

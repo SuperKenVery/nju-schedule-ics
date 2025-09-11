@@ -35,6 +35,7 @@ pub struct LoginForm {
     username: String,
     password: String,
     captcha_answer: String,
+    school_api: String,
 }
 
 #[debug_handler]
@@ -45,6 +46,7 @@ pub async fn login(
         username,
         password,
         captcha_answer,
+        school_api,
     }): Form<LoginForm>,
 ) -> Result<impl IntoResponse, AppError> {
     let cookies = headers
