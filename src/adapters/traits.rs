@@ -1,20 +1,20 @@
 use super::location::GeoLocation;
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, TimeZone, Utc};
-use diesel::{Connection, Insertable, RunQueryDsl, Selectable, SqliteConnection, Table};
+use chrono::{DateTime, Utc};
+use diesel::SqliteConnection;
 use downcast_rs::{impl_downcast, Downcast};
 use image::DynamicImage;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
-use std::any::Any;
+use std::sync::{Arc, Mutex};
 
 /// An adapter for a school API.
 ///
 /// A physical school can have multiple APIs, which corresponds to
 /// multiple [`School`]s here
 pub trait School: Login + CoursesProvider {
-    fn new(db: SqliteConnection) -> Self
+    fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
     where
         Self: Sized;
 }

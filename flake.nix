@@ -33,10 +33,12 @@
       targets = ["wasm32-unknown-unknown"];
     });
 
-    dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (_: {
+    dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (oldAttrs: {
       postPatch = ''
         rm Cargo.lock
         cp ${./Dioxus.lock} Cargo.lock
+        substituteInPlace $cargoDepsCopy/wasm-opt-sys-*/build.rs \
+              --replace-fail 'check_cxx17_support()?;' '// check_cxx17_support()?;'
       '';
 
       cargoDeps = pkgs.rustPlatform.importCargoLock {
@@ -55,12 +57,12 @@
       src = pkgs.fetchCrate {
         pname = "wasm-bindgen-cli";
         version = wasmBindgen.${pkgs.system}.version;
-        hash = "sha256-1VwY8vQy7soKEgbki4LD+v259751kKxSxmo/gqE6yV0=";
+        hash = "sha256-txpbTzlrPSEktyT9kSpw4RXQoiSZHm9t3VxeRn//9JI=";
       };
       cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
         inherit src;
         inherit (src) pname version;
-        hash = "sha256-81vQkKubMWaX0M3KAwpYgMA1zUQuImFGvh5yTW+rIAs=";
+        hash = "sha256-J+F9SqTpH3T0MbvlNKVyKnMachgn8UXeoTF0Pk3Xtnc=";
       };
     }));
 
@@ -71,9 +73,9 @@
       # Based on a discussion at https://github.com/oxalica/rust-overlay/issues/129
       default = pkgs.mkShell (with pkgs; {
         nativeBuildInputs = [
-          clang
           # Use mold when we are runnning in Linux
           (lib.optionals stdenv.isLinux mold)
+          sqlite
         ];
 
         buildInputs = [
@@ -86,6 +88,9 @@
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
           pkg-config
+        ])) ++
+        (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [
+          apple-sdk_15
         ]));
 
         # RUST_SRC_PATH = "${
