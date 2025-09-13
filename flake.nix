@@ -24,9 +24,48 @@
           })
       );
 
-    rustToolchain = eachSystem (pkgs: pkgs.rust-bin.stable.latest);
-    name = "nju-schedule-ics";
-    version = "0.9.0";
+    # rustToolchain = eachSystem (pkgs: (pkgs.rust-bin.selectLatestStableWith (t: t.default)).override {
+    #   extensions = ["rust-src" "rust-analyzer"];
+    #   targets = ["wasm32-unknown-unknown"];
+    # });
+    rustToolchain = eachSystem (pkgs: pkgs.rust-bin.stable.latest.default.override {
+      extensions = ["rust-src" "rust-analyzer"];
+      targets = ["wasm32-unknown-unknown"];
+    });
+
+    dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (_: {
+      postPatch = ''
+        rm Cargo.lock
+        cp ${./Dioxus.lock} Cargo.lock
+      '';
+
+      cargoDeps = pkgs.rustPlatform.importCargoLock {
+        lockFile = ./Dioxus.lock;
+      };
+    }));
+
+    cargoLock = builtins.fromTOML (builtins.readFile ./Cargo.lock);
+
+    wasmBindgen = eachSystem (pkgs: (pkgs.lib.findFirst
+      (pkg: pkg.name == "wasm-bindgen")
+      (throw "Could not find wasm-bindgen package")
+      cargoLock.package));
+
+    wasm-bindgen-cli = eachSystem (pkgs: (pkgs.buildWasmBindgenCli rec {
+      src = pkgs.fetchCrate {
+        pname = "wasm-bindgen-cli";
+        version = wasmBindgen.${pkgs.system}.version;
+        hash = "sha256-1VwY8vQy7soKEgbki4LD+v259751kKxSxmo/gqE6yV0=";
+      };
+      cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+        inherit src;
+        inherit (src) pname version;
+        hash = "sha256-81vQkKubMWaX0M3KAwpYgMA1zUQuImFGvh5yTW+rIAs=";
+      };
+    }));
+
+
+
   in rec {
     devShells = eachSystem (pkgs: {
       # Based on a discussion at https://github.com/oxalica/rust-overlay/issues/129
@@ -38,77 +77,26 @@
         ];
 
         buildInputs = [
-          rustToolchain.${pkgs.system}.default
-          rust-analyzer-unwrapped
+          rustToolchain.${pkgs.system}
           cargo
           diesel-cli
-          # pkg-config
-          # openssl
+          dioxus-cli.${pkgs.system}
+          wasm-bindgen-cli.${pkgs.system}
         ] ++
-        # (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
-        #   SystemConfiguration
-        # ])) ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
+          pkg-config
         ]));
 
-        RUST_SRC_PATH = "${
-          rustToolchain.${pkgs.system}.rust-src
-        }/lib/rustlib/src/rust/library";
+        # RUST_SRC_PATH = "${
+        #   rustToolchain.${pkgs.system}.rust-src
+        # }/lib/rustlib/src/rust/library";
         RUST_BACKTRACE = "1";
       });
     });
 
-    packages = eachSystem (pkgs: {
-      default = pkgs.rustPlatform.buildRustPackage {
-        pname = name;
-        inherit version;
-        src = pkgs.lib.cleanSourceWith {
-          filter = (path: type:
-              (
-                let
-                  name = builtins.baseNameOf path;
-                in
-                  (builtins.match ".*src.*" path != null || name == "Cargo.toml" || name == "Cargo.lock") &&
-                  builtins.match ".*\.DS_Store" path == null
-              )
-            );
-          src = (pkgs.lib.cleanSource ./.);
-        } ;
-
-        cargoHash = "sha256-R/EHkN+zvmFKSx1U5P8vFt8eOf7XPAoGFg0a0oMflc0=";
-        buildInputs = []  ++
-          # (pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk.frameworks; [
-          #   SystemConfiguration
-          # ])) ++
-          (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
-            openssl
-          ]));
-        nativeBuildInputs = (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
-          pkg-config
-        ]));
-        doCheck = false;
-        buildType = "debug";
-        dontStrip = true;
-      };
-
-      docker = pkgs.dockerTools.buildImage {
-        inherit name;
-
-        copyToRoot = [ pkgs.cacert ];
-
-        config = {
-          Cmd = [ "${packages.${pkgs.system}.default}/bin/nju-schedule-ics" "--config" "/config.toml" ];
-          Env = [
-            "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-            "RUST_BACKTRACE=1"
-          ];
-        };
-      };
-    });
-
-    githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = self.packages;
-    };
+    # TODO: We'll use `dx bundle` to create bundle.
+    # Should we still use nix to build it?
+    # Or just run `dx bundle` in CI?
   };
 }
