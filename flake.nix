@@ -41,6 +41,7 @@
           rustToolchain.${pkgs.system}.default
           rust-analyzer-unwrapped
           cargo
+          diesel-cli
           # pkg-config
           # openssl
         ] ++

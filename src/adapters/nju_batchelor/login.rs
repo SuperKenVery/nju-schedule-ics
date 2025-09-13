@@ -1,5 +1,6 @@
+use super::db_schema::castgc::dsl::{castgc, key};
 use super::NJUBatchelorAdaptor;
-use crate::adapters::traits::{Credentials, Login, LoginSession, Savable};
+use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
     cipher::{block_padding::Pkcs7, BlockEncryptMut, KeyIvInit},
     Aes128,
@@ -7,22 +8,37 @@ use aes::{
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine as _};
+use derivative::Derivative;
+use diesel::SelectableHelper;
+use diesel::{
+    prelude::QueryableByName, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
+    Selectable, SqliteConnection,
+};
 use image::{DynamicImage, ImageReader};
 use reqwest::{cookie::Jar, Client, Url};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, io::Cursor};
+use uuid::Uuid;
 use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
 #[async_trait]
 impl Login for NJUBatchelorAdaptor {
     async fn new_login_session(&self) -> Result<Box<dyn LoginSession>> {
-        Ok(Box::new(Session::new().await?))
+        Ok(Box::new(Session::new(self.connection.clone()).await?))
     }
 
-    async fn get_cred_from_db(&self) -> Option<Box<dyn Credentials>> {
-        todo!()
+    async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>> {
+        let mut connection = self.connection.lock().unwrap();
+
+        let queried = castgc
+            .filter(key.eq(session_id))
+            .first::<RowLoginCredential>(&mut *connection)
+            .ok()?;
+        let cred: LoginCredential = queried.into();
+
+        Some(Box::new(cred))
     }
 
     async fn create_authenticated_client(
@@ -43,11 +59,11 @@ impl Login for NJUBatchelorAdaptor {
         ))
         .build();
 
-        let credentials: Box<LoginCredentials> = credentials
+        let credentials: Box<LoginCredential> = credentials
             .downcast()
             .map_err(|_| anyhow!("Invalid login credentials (failed to downcast)"))?;
         jar.add_cookie_str(
-            format!("CASTGC={}", credentials.castgc).as_str(),
+            format!("CASTGC={}", credentials.value).as_str(),
             &Url::parse("https://authserver.nju.edu.cn").unwrap(),
         );
 
@@ -62,11 +78,15 @@ impl Login for NJUBatchelorAdaptor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Session {
+    id: String,
     client: reqwest::Client,
     captcha: DynamicImage,
     context: HashMap<String, String>,
+    #[derivative(Debug = "ignore")]
+    db: Arc<Mutex<SqliteConnection>>,
 }
 
 #[async_trait]
@@ -101,21 +121,26 @@ impl LoginSession for Session {
             .send()
             .await?;
 
-        match login_response.cookies().find(|x| x.name() == "CASTGC") {
-            Some(castgc) => Ok(Box::new(LoginCredentials {
-                castgc: castgc.value().to_string(),
+        let found_castgc = login_response.cookies().find(|x| x.name() == "CASTGC");
+        match found_castgc {
+            Some(castgc_cookie) => Ok(Box::new(LoginCredential {
+                key: self.id.clone(),
+                value: castgc_cookie.value().to_string(),
+                last_access: chrono::Local::now().naive_local(),
             })),
+            // Login failed, try to get reason from webpage
             None => {
+                let response_text = &login_response
+                    .text()
+                    .await
+                    .context("Parsing login failed response")?;
                 let (mut err_page, doc_handle) = {
                     let mut doc = Documents::new();
                     let doc_handle = doc.add_string(
                         "https://authserver.nju.edu.cn"
                             .try_into()
                             .context("Parsing login failed response")?,
-                        &login_response
-                            .text()
-                            .await
-                            .context("Parsing login failed response")?,
+                        &response_text,
                     )?;
 
                     (doc, doc_handle)
@@ -135,28 +160,47 @@ impl LoginSession for Session {
             }
         }
     }
+
+    fn session_id(&self) -> &str {
+        &self.id
+    }
+
+    fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()> {
+        let cred: Box<LoginCredential> = cred
+            .downcast()
+            .map_err(|_| anyhow!("Got invalid credential when saving to db, downcasting failed"))?;
+        let mut connection = self.db.lock().unwrap();
+        let connection_ref: &mut SqliteConnection = &mut *connection;
+
+        let _inserted = diesel::insert_into(super::db_schema::castgc::dsl::castgc)
+            .values(*cred)
+            .execute(connection_ref)?;
+
+        Ok(())
+    }
 }
 
 impl Session {
     /// Create a login session
     ///
     /// by requesting the login page
-    async fn new() -> Result<Self> {
+    async fn new(db: Arc<Mutex<SqliteConnection>>) -> Result<Self> {
         let (client, _jar) = build_client().await?;
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
             .send()
             .await?;
 
-        let login_page_raw = login_page_response.text().await?;
-        let (mut login_page, doc_handle) = {
-            let mut doc = Documents::new();
-            let doc_handle =
-                doc.add_string("https://authserver.nju.edu.cn".try_into()?, &login_page_raw)?;
-            (doc, doc_handle)
+        let context = {
+            let login_page_raw = login_page_response.text().await?;
+            let (mut login_page, doc_handle) = {
+                let mut doc = Documents::new();
+                let doc_handle =
+                    doc.add_string("https://authserver.nju.edu.cn".try_into()?, &login_page_raw)?;
+                (doc, doc_handle)
+            };
+            extract_context(&mut login_page, doc_handle)?
         };
-
-        let context = extract_context(&mut login_page, doc_handle)?;
 
         let captcha_content = client
             .get("https://authserver.nju.edu.cn/authserver/captcha.html")
@@ -169,9 +213,11 @@ impl Session {
             .decode()?;
 
         Ok(Self {
+            id: Uuid::new_v4().to_string(),
             client,
             captcha: captcha_image,
             context,
+            db,
         })
     }
 }
@@ -216,6 +262,8 @@ fn encrypt(password: &str, salt: &str) -> String {
 }
 
 /// Build the network client with appropriate headers needed for login page
+///
+/// This client isn't logged in; it is used for logging in.
 async fn build_client() -> Result<(Client, Arc<Jar>)> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
@@ -240,26 +288,37 @@ async fn build_client() -> Result<(Client, Arc<Jar>)> {
     Ok((client, jar))
 }
 
-pub struct LoginCredentials {
-    castgc: String,
+#[derive(Insertable)]
+#[diesel(table_name = super::db_schema::castgc)]
+pub struct LoginCredential {
+    /// The session ID
+    key: String,
+    /// The CASTGC cookie
+    value: String,
+    /// Time last accessed
+    last_access: chrono::NaiveDateTime,
 }
 
-// impl Credentials for LoginCredentials {
-//     fn save_to_db(&self) -> Result<()> {
-//         todo!()
-//     }
-// }
+#[derive(Queryable)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+struct RowLoginCredential {
+    id: Option<i32>,
+    /// The session ID
+    key: String,
+    /// The CASTGC cookie
+    value: String,
+    /// Time last accessed
+    last_access: chrono::NaiveDateTime,
+}
 
-impl Savable for LoginCredentials {
-    type T;
+impl Credentials for LoginCredential {}
 
-    type C;
-
-    fn table(&self) -> Self::T {
-        todo!()
-    }
-
-    fn connection(&self) -> &mut Self::C {
-        todo!()
+impl From<RowLoginCredential> for LoginCredential {
+    fn from(cred: RowLoginCredential) -> Self {
+        Self {
+            key: cred.key,
+            value: cred.value,
+            last_access: cred.last_access,
+        }
     }
 }
