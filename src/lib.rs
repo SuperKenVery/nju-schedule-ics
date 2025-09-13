@@ -1,11 +1,10 @@
-/// 与南大服务器对接
-pub mod nju;
+#![recursion_limit = "512"]
 
 /// 对接各种学校的课表API
 pub mod adapters;
 
-/// 处理转换，从json到日历ics文件
-pub mod schedule;
+/// 使用dioxus构建的全栈应用，包括网页前端和服务器后端。
+pub mod gui;
 
 /// http服务器
 pub mod server;

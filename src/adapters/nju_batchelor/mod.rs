@@ -1,12 +1,14 @@
+mod course;
+mod db_schema;
 mod login;
 
 use diesel::{Connection, SqliteConnection};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::adapters::traits::School;
 
 pub struct NJUBatchelorAdaptor {
-    connection: Mutex<SqliteConnection>,
+    connection: Arc<Mutex<SqliteConnection>>,
 }
 
 impl School for NJUBatchelorAdaptor {
@@ -15,7 +17,7 @@ impl School for NJUBatchelorAdaptor {
         Self: Sized,
     {
         Self {
-            connection: Mutex::new(db),
+            connection: Arc::new(Mutex::new(db)),
         }
     }
 }

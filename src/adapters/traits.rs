@@ -1,3 +1,4 @@
+use super::location::GeoLocation;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
@@ -12,7 +13,7 @@ use std::any::Any;
 ///
 /// A physical school can have multiple APIs, which corresponds to
 /// multiple [`School`]s here
-pub trait School: Login + Courses {
+pub trait School: Login + CoursesProvider {
     fn new(db: SqliteConnection) -> Self
     where
         Self: Sized;
@@ -24,8 +25,10 @@ pub trait Login {
     /// Create a new login session.
     async fn new_login_session(&self) -> Result<Box<dyn LoginSession>>;
     /// Query login credential in database
-    async fn get_cred_from_db(&self) -> Option<Box<dyn Credentials>>;
+    async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>>;
     /// Create an HTTP client given the login credentials.
+    ///
+    /// This client is logged in.
     async fn create_authenticated_client(
         &self,
         credentials: Box<dyn Credentials>,
@@ -41,6 +44,8 @@ pub struct Course {
     pub time: Vec<(DateTime<Utc>, DateTime<Utc>)>,
     /// The location of this course.
     pub location: Option<String>,
+    /// The latitide and longtitude of the course location.
+    pub geo: Option<GeoLocation>,
     /// The campus of this course
     pub campus: Option<String>,
     /// Additional notes.
@@ -49,24 +54,18 @@ pub struct Course {
     /// include anything like notes, teacher, notice or whatsoever.
     ///
     /// When displayed, the vec of string will be concatenated with
-    /// two new lines (thus an empty line between each string)
+    /// new lines (each one in its own line)
     pub notes: Vec<String>,
 }
 
 /// Supports getting courses from school.
-pub trait Courses {
+pub trait CoursesProvider {
     /// Get courses
     fn courses(&self, client: &Client) -> Vec<Course>;
 }
 
 /// The login credential for a school.
-///
-/// It should implement [`Insertable`] so that it could be
-/// saved to a database.
-pub trait Credentials: Downcast {
-    /// Save the credential to database
-    fn save_to_db(&self) -> Result<()>;
-}
+pub trait Credentials: Downcast + Send {}
 impl_downcast!(Credentials);
 
 /// A login session for the user to login.
@@ -90,27 +89,12 @@ pub trait LoginSession {
         password: String,
         captcha_answer: String,
     ) -> Result<Box<dyn Credentials>>;
-}
 
-impl<S, T> Credentials for S
-where
-    T: Table,
-    S: Savable<T = T> + 'static,
-{
-    fn save_to_db(&self) -> Result<()> {
-        diesel::insert_into(self.table())
-            .values(self)
-            .execute(self.connection())?;
+    /// Get the session ID.
+    ///
+    /// This is set as a cookie to distinguish different logins.
+    fn session_id(&self) -> &str;
 
-        Ok(())
-    }
-}
-
-pub trait Savable {
-    /// The table type
-    type T: Table;
-    type C: Connection;
-
-    fn table(&self) -> Self::T;
-    fn connection(&self) -> &mut Self::C;
+    /// Save credential to DB
+    fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()>;
 }
