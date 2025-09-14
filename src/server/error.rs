@@ -4,7 +4,7 @@ use axum::{
     http::{Response, StatusCode},
     response::IntoResponse,
 };
-use log::error;
+use tracing::error;
 use uuid::Uuid;
 
 use anyhow::Error;

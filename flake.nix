@@ -84,6 +84,7 @@
           diesel-cli
           dioxus-cli.${pkgs.system}
           wasm-bindgen-cli.${pkgs.system}
+          nodejs
         ] ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl

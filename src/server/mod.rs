@@ -10,5 +10,5 @@ pub mod config;
 #[cfg(feature = "server")]
 pub mod error;
 
-/// 定义打日志的格式
-pub mod log_format;
+/// 给客户端调用的接口及其实现
+pub mod apis;

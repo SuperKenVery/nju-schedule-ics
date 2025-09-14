@@ -1,5 +1,4 @@
 use super::error::AppError;
-use super::log_format::LogTimePrefix;
 use crate::server::config::Config;
 use anyhow::Result;
 use axum::{
@@ -11,6 +10,7 @@ use diesel::{Connection, SqliteConnection};
 use dioxus::prelude::*;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tracing::debug;
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]
@@ -34,8 +34,9 @@ impl TryFrom<Config> for AppState {
 #[cfg(feature = "server")]
 pub async fn server_start() -> Result<()> {
     use crate::gui::app::App;
+    debug!("Current server working dir: {:?}", std::env::current_dir());
 
-    let config = Config::from_default().await?;
+    let config = Config::from_default()?;
     let state: AppState = config.clone().try_into()?;
 
     // Build a custom axum router

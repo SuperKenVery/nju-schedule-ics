@@ -2,11 +2,11 @@ use super::error::AppError;
 use anyhow::Result;
 use axum::Router;
 use clap::Parser;
-use log::{debug, error, info};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use toml;
+use tracing::{debug, error, info};
 
 #[derive(Parser, Debug)]
 #[command(author,version,about,long_about=None)]
@@ -34,7 +34,7 @@ site_url="https://example.com/sub_dir"
 "#;
 
 impl Config {
-    pub async fn from_file(path: &str) -> Result<Self> {
+    pub fn from_file(path: &str) -> Result<Self> {
         let config = std::fs::read_to_string(path);
 
         match config {
@@ -58,13 +58,13 @@ impl Config {
         }
     }
 
-    pub async fn from_cmdline() -> Result<Self> {
+    pub fn from_cmdline() -> Result<Self> {
         let args = Args::parse();
 
-        Self::from_file(&args.config).await
+        Self::from_file(&args.config)
     }
 
-    pub async fn from_default() -> Result<Self> {
-        Self::from_file("./config.toml").await
+    pub fn from_default() -> Result<Self> {
+        Self::from_file("./config.toml")
     }
 }
