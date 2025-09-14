@@ -17,6 +17,8 @@ pub trait School: Login + CoursesProvider {
     fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
     where
         Self: Sized;
+
+    fn name(&self) -> &str;
 }
 
 /// Supports logging in to the school.

@@ -10,3 +10,6 @@ redis
 **/config.toml
 image
 result
+
+/assets/tailwind_output.css
+node_modules/

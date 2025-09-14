@@ -18,4 +18,8 @@ impl School for NJUBatchelorAdaptor {
     {
         Self { connection: db }
     }
+
+    fn name(&self) -> &str {
+        "南京大学本科生"
+    }
 }
