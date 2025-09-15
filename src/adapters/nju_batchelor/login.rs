@@ -1,25 +1,26 @@
-use super::db_schema::castgc::dsl::{castgc, key};
 use super::NJUBatchelorAdaptor;
+use super::db_schema::castgc::dsl::{castgc, key};
 use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
-    cipher::{block_padding::Pkcs7, BlockEncryptMut, KeyIvInit},
     Aes128,
+    cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7},
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use derivative::Derivative;
 use diesel::SelectableHelper;
 use diesel::{
-    prelude::QueryableByName, ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl,
-    Selectable, SqliteConnection,
+    ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl, Selectable, SqliteConnection,
+    prelude::QueryableByName,
 };
 use image::{DynamicImage, ImageReader};
-use reqwest::{cookie::Jar, Client, Url};
+use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
-use std::sync::{Arc, Mutex};
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
+use tokio::sync::Mutex;
 use uuid::Uuid;
 use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
@@ -30,7 +31,7 @@ impl Login for NJUBatchelorAdaptor {
     }
 
     async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>> {
-        let mut connection = self.connection.lock().unwrap();
+        let mut connection = self.connection.lock().await;
 
         let queried = castgc
             .filter(key.eq(session_id))
@@ -165,11 +166,11 @@ impl LoginSession for Session {
         &self.id
     }
 
-    fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()> {
+    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()> {
         let cred: Box<LoginCredential> = cred
             .downcast()
             .map_err(|_| anyhow!("Got invalid credential when saving to db, downcasting failed"))?;
-        let mut connection = self.db.lock().unwrap();
+        let mut connection = self.db.lock().await;
         let connection_ref: &mut SqliteConnection = &mut *connection;
 
         let _inserted = diesel::insert_into(super::db_schema::castgc::dsl::castgc)

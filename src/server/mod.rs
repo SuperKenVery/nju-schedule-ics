@@ -10,5 +10,5 @@ pub mod config;
 #[cfg(feature = "server")]
 pub mod error;
 
-/// 给客户端调用的接口及其实现
+/// 给客户端调用的接口实现
 pub mod apis;

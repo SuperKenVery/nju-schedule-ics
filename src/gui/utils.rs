@@ -1,6 +1,4 @@
 use dioxus::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::{collections::HashMap, sync::LazyLock};
 
 #[component]
 pub fn Centered(background: Option<String>, children: Element) -> Element {
@@ -21,4 +19,9 @@ pub fn Centered(background: Option<String>, children: Element) -> Element {
             src: background
         }
     }
+}
+
+#[derive(Clone)]
+pub struct ClientState {
+    pub session_id: Option<String>,
 }
