@@ -1,3 +1,5 @@
+use crate::gui::utils::ClientState;
+
 use super::login::Login;
 use super::select_school::SchoolAPISelect;
 use dioxus::prelude::*;
@@ -20,12 +22,18 @@ enum Route {
 
 #[component]
 pub fn App() -> Element {
+    let client_state = use_context_provider(|| Signal::new(ClientState { session_id: None }));
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND }
         document::Link { rel: "stylesheet", href: RAINBOW_SHADOW }
 
+        div {
+            h2 { "Debug variable display" }
+            p { "session id = {client_state().session_id:?}" }
+        }
         Router::<Route> {}
     }
 }

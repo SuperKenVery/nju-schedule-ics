@@ -1,7 +1,7 @@
 [package]
 name = "nju-schedule-ics"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 aes = "0.8.3"
@@ -23,7 +23,7 @@ reqwest-retry = "0.3.0"
 serde = { version = "1.0.188", features = ["derive", "serde_derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"], default-features = false, optional = true }
 toml = "0.8.10"
-uuid = { version = "1.4.1", features = ["v4", "serde"], optional=true }
+uuid = { version = "1.4.1", features = ["v4", "serde"], optional = true }
 log = "0.4.22"
 colog = "1.3.0"
 colored = "2.1.0"

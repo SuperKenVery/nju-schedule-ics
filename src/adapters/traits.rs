@@ -3,17 +3,18 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use diesel::SqliteConnection;
-use downcast_rs::{impl_downcast, Downcast};
+use downcast_rs::{Downcast, impl_downcast};
 use image::DynamicImage;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
-use std::sync::{Arc, Mutex};
+use std::{fmt::Debug, sync::Arc};
+use tokio::sync::Mutex;
 
 /// An adapter for a school API.
 ///
 /// A physical school can have multiple APIs, which corresponds to
 /// multiple [`School`]s here
-pub trait School: Login + CoursesProvider {
+pub trait School: Login + CoursesProvider + Send + Sync + Debug {
     fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
     where
         Self: Sized;
@@ -98,5 +99,5 @@ pub trait LoginSession {
     fn session_id(&self) -> &str;
 
     /// Save credential to DB
-    fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()>;
+    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()>;
 }

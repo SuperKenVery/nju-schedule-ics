@@ -2,12 +2,16 @@ mod course;
 mod db_schema;
 mod login;
 
-use diesel::SqliteConnection;
-use std::sync::{Arc, Mutex};
-
 use crate::adapters::traits::School;
+use derivative::Derivative;
+use diesel::SqliteConnection;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct NJUBatchelorAdaptor {
+    #[derivative(Debug = "ignore")]
     connection: Arc<Mutex<SqliteConnection>>,
 }
 
