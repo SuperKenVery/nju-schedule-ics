@@ -43,6 +43,7 @@ dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version 
 getrandom = { version = "0.3.3", features = ["std", "wasm_js"] }
 strum = "0.27.2"
 daisy_rsx = "0.1.42"
+skyscraper = "0.6.4"
 
 [features]
 default = []

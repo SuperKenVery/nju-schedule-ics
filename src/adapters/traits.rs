@@ -68,7 +68,7 @@ pub trait CoursesProvider {
 }
 
 /// The login credential for a school.
-pub trait Credentials: Downcast + Send {}
+pub trait Credentials: Downcast + Send + Sync {}
 impl_downcast!(Credentials);
 
 /// A login session for the user to login.
@@ -81,7 +81,7 @@ impl_downcast!(Credentials);
 /// - **Finish login.**
 ///   You request the school's login page to finish the login.
 #[async_trait]
-pub trait LoginSession {
+pub trait LoginSession: Send + Sync + Debug {
     /// Get the content of captcha image
     fn get_captcha(&self) -> &DynamicImage;
 
