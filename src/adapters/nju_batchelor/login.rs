@@ -1,5 +1,6 @@
 use super::NJUBatchelorAdaptor;
 use super::db_schema::castgc::dsl::{castgc, key};
+use crate::adapters::nju_batchelor::login;
 use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
     Aes128,
@@ -18,11 +19,22 @@ use image::{DynamicImage, ImageReader};
 use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+use skyscraper::html::{self, HtmlDocument};
+use skyscraper::xpath::xpath_item_set::XpathItemSet;
+use skyscraper::xpath::{
+    self, XpathItemTree,
+    grammar::{
+        XpathItemTreeNodeData,
+        data_model::{Node, XpathItem},
+    },
+};
+use std::error::Error;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
+use tracing::debug;
 use uuid::Uuid;
-use xee_xpath::{DocumentHandle, Documents, Queries, Query};
+// use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
 #[async_trait]
 impl Login for NJUBatchelorAdaptor {
@@ -131,31 +143,17 @@ impl LoginSession for Session {
             })),
             // Login failed, try to get reason from webpage
             None => {
-                let response_text = &login_response
+                let doc = login_response
                     .text()
                     .await
-                    .context("Parsing login failed response")?;
-                let (mut err_page, doc_handle) = {
-                    let mut doc = Documents::new();
-                    let doc_handle = doc.add_string(
-                        "https://authserver.nju.edu.cn"
-                            .try_into()
-                            .context("Parsing login failed response")?,
-                        &response_text,
-                    )?;
+                    .context("Parsing login failed response")?
+                    .xptree()?;
 
-                    (doc, doc_handle)
-                };
-                let queries = Queries::default();
-                let reason = queries
-                    .one(
-                        "//form[@id='casLoginForm']/span[@class='auth_error']/text()",
-                        |_, item| Ok(item.try_into_value::<String>()?),
-                    )
-                    .context("Building xpath query to get login fail reason")?;
-                let reason = reason
-                    .execute(&mut err_page, doc_handle)
-                    .context("Getting login fail reason")?;
+                let reason = doc
+                    .xpath("//form[@id='casLoginForm']/span[@class='auth_error']/text()")?
+                    .first()
+                    .context("Cannot get login fail reason")?
+                    .to_string();
 
                 Err(anyhow!(reason))
             }
@@ -192,16 +190,7 @@ impl Session {
             .send()
             .await?;
 
-        let context = {
-            let login_page_raw = login_page_response.text().await?;
-            let (mut login_page, doc_handle) = {
-                let mut doc = Documents::new();
-                let doc_handle =
-                    doc.add_string("https://authserver.nju.edu.cn".try_into()?, &login_page_raw)?;
-                (doc, doc_handle)
-            };
-            extract_context(&mut login_page, doc_handle)?
-        };
+        let context = extract_context(login_page_response.text().await?.xptree()?)?;
 
         let captcha_content = client
             .get("https://authserver.nju.edu.cn/authserver/captcha.html")
@@ -224,27 +213,29 @@ impl Session {
 }
 
 /// Extract some attributes on the page needed for POST requests.
-fn extract_context(
-    login_page: &mut Documents,
-    handle: DocumentHandle,
-) -> Result<HashMap<String, String>> {
-    let queries = Queries::default();
-
-    let q_names = queries.many("//form[@id='casLoginForm']/input/@name", |_, item| {
-        Ok(item.try_into_value::<String>()?)
-    })?;
-    let q_values = queries.many("//form[@id='casLoginForm']/input/@value", |_, item| {
-        Ok(item.try_into_value::<String>()?)
-    })?;
-
-    let names = q_names.execute(login_page, handle)?;
-    let values = q_values.execute(login_page, handle)?;
+fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>> {
+    todo!();
+    let names = login_page.xpath("//form[@id='casLoginForm']/input/@name")?;
+    let values = login_page.xpath("//form[@id='casLoginForm']/input/@value")?;
 
     let mut context = HashMap::new();
 
     for (name, value) in names.into_iter().zip(values.into_iter()) {
-        context.insert(name, value);
+        context.insert(
+            name.as_node()?
+                .as_non_tree_node()?
+                .as_attribute_node()?
+                .value
+                .clone(),
+            value
+                .as_node()?
+                .as_non_tree_node()?
+                .as_attribute_node()?
+                .value
+                .clone(),
+        );
     }
+    debug!("Context: {:#?}", context);
 
     Ok(context)
 }
@@ -321,5 +312,29 @@ impl From<RowLoginCredential> for LoginCredential {
             value: cred.value,
             last_access: cred.last_access,
         }
+    }
+}
+
+trait ToXpathTree {
+    fn xptree(&self) -> Result<XpathItemTree>;
+}
+
+impl ToXpathTree for String {
+    fn xptree(&self) -> Result<XpathItemTree> {
+        let doc = html::parse(self.as_str())?;
+        let xpath_item_tree = XpathItemTree::from(&doc);
+        Ok(xpath_item_tree)
+    }
+}
+
+trait XpathExt {
+    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem>>;
+}
+
+impl XpathExt for XpathItemTree {
+    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem>> {
+        let xpath_query = xpath::parse(query)?;
+        let item_set = xpath_query.apply(self)?;
+        Ok(item_set.into_iter().collect())
     }
 }

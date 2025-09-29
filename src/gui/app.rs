@@ -11,7 +11,7 @@ const TAILWIND: Asset = asset!("/assets/tailwind_output.css");
 const RAINBOW_SHADOW: Asset = asset!("/assets/rainbow_shadow.css");
 
 #[derive(Routable, Clone)]
-enum Route {
+pub(super) enum Route {
     #[route("/")]
     SchoolAPISelect,
     #[route("/login")]
@@ -30,10 +30,10 @@ pub fn App() -> Element {
         document::Link { rel: "stylesheet", href: TAILWIND }
         document::Link { rel: "stylesheet", href: RAINBOW_SHADOW }
 
-        div {
-            h2 { "Debug variable display" }
-            p { "session id = {client_state().session_id:?}" }
-        }
+        // div {
+        //     h2 { "Debug variable display" }
+        //     p { "session id = {client_state().session_id:?}" }
+        // }
         Router::<Route> {}
     }
 }

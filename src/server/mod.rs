@@ -10,5 +10,6 @@ pub mod config;
 #[cfg(feature = "server")]
 pub mod error;
 
-/// 给客户端调用的接口实现
-pub mod apis;
+/// 定义服务端的状态
+#[cfg(feature = "server")]
+pub mod state;

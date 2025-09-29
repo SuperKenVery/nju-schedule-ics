@@ -1,7 +1,11 @@
-use dioxus::prelude::{server_fn::error::NoCustomError, *};
+use super::app::Route;
+use super::utils::Result;
+use crate::gui::utils::{ClientState, CustomError, ResultExt};
+use dioxus::prelude::{
+    server_fn::{ServerFn, error::NoCustomError},
+    *,
+};
 use tracing::{debug, info};
-
-use crate::gui::utils::ClientState;
 
 #[component]
 pub fn SchoolAPISelect() -> Element {
@@ -50,7 +54,11 @@ pub fn SchoolAPISelect() -> Element {
                     if let Some(Ok(adapters)) = adapters() &&
                         let Some(adapter_name) = adapters.get(active_idx()) &&
                         let Some(Ok(session_id)) = session_id(){
-                        set_adapter(adapter_name.to_string(), session_id).await;
+                        set_school(adapter_name.to_string(), session_id).await?;
+                        info!("Selecting school: {}", adapter_name);
+
+                        let nav = navigator();
+                        nav.push(Route::Login {  });
                     }
                     Ok(())
                 },
@@ -105,19 +113,18 @@ fn SchoolAdapterMenu(adapters: Vec<String>, active_index: Signal<usize>) -> Elem
 /// Get available adapters, also getting a session ID.
 #[server]
 pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
-    use crate::adapters::all_adapters::adapters;
+    use crate::adapters::all_school_adapters::school_adapters;
 
-    Ok(adapters().iter().map(|x| x.to_string()).collect())
+    Ok(school_adapters().iter().map(|x| x.to_string()).collect())
 }
 
 /// Get a new UnfinishedLoginSession
 #[server]
-pub async fn get_session() -> Result<String, ServerFnError> {
-    use crate::server::server::AppState;
-    use crate::server::server::UnfinishedLoginSession;
+pub async fn get_session() -> Result<String, ServerFnError<CustomError>> {
+    use crate::server::state::{ServerState, UnfinishedLoginSession};
     use uuid::Uuid;
 
-    let FromContext(state): FromContext<AppState> = extract().await?;
+    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
     let mut session_id = Uuid::new_v4().to_string();
     let mut sessions = state.unfinished_login_sessions.lock().await;
     while sessions.contains_key(&session_id) {
@@ -125,32 +132,26 @@ pub async fn get_session() -> Result<String, ServerFnError> {
         session_id = Uuid::new_v4().to_string();
     }
 
-    sessions.insert(session_id.clone(), UnfinishedLoginSession::new());
+    sessions.insert(session_id.clone(), UnfinishedLoginSession::Started);
 
     Ok(session_id)
 }
 
 #[server]
-pub async fn set_adapter(name: String, session_id: String) -> Result<(), ServerFnError> {
-    use crate::adapters::all_adapters::adapter_from_name;
-    use crate::adapters::traits::School;
-    use crate::server::server::AppState;
-    use std::sync::Arc;
+pub async fn set_school(
+    name: String,
+    session_id: String,
+) -> Result<(), ServerFnError<CustomError>> {
+    use crate::server::state::{ServerState, UnfinishedLoginSession};
 
-    let FromContext(state): FromContext<AppState> = extract().await?;
+    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
     let mut sessions = state.unfinished_login_sessions.lock().await;
-    let session =
-        sessions
-            .get_mut(&session_id)
-            .ok_or(ServerFnError::<NoCustomError>::ServerError(
-                "Session not found".to_string(),
-            ))?;
-    let adapter: Arc<dyn School> = adapter_from_name(&name, state.db)
-        .ok_or(ServerFnError::<NoCustomError>::ServerError(
-            "Invalid School API".to_string(),
-        ))?
-        .into();
-    session.selected_school_api = Some(adapter);
+    let session = sessions
+        .get_mut(&session_id)
+        .context("Session not found")
+        .to_sfn()?;
+
+    session.select_school(name).await.to_sfn()?;
 
     Ok(())
 }
