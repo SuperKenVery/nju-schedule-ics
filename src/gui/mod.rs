@@ -1,6 +1,5 @@
 pub mod app;
-mod login;
-mod select_school;
+mod steps;
 pub mod utils;
 
 pub fn start_app() {

@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use diesel::SqliteConnection;
 use downcast_rs::{Downcast, impl_downcast};
+use dyn_clone::DynClone;
 use image::DynamicImage;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
@@ -28,7 +29,7 @@ pub trait Login {
     /// Create a new login session.
     async fn new_login_session(&self) -> Result<Box<dyn LoginSession>>;
     /// Query login credential in database
-    async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>>;
+    async fn get_cred_from_db(&self, db_key: &str) -> Option<Box<dyn Credentials>>;
     /// Create an HTTP client given the login credentials.
     ///
     /// This client is logged in.
@@ -68,8 +69,9 @@ pub trait CoursesProvider {
 }
 
 /// The login credential for a school.
-pub trait Credentials: Downcast + Send + Sync {}
+pub trait Credentials: Downcast + Send + Sync + DynClone {}
 impl_downcast!(Credentials);
+dyn_clone::clone_trait_object!(Credentials);
 
 /// A login session for the user to login.
 ///
@@ -98,6 +100,9 @@ pub trait LoginSession: Send + Sync + Debug {
     /// This is set as a cookie to distinguish different logins.
     fn session_id(&self) -> &str;
 
-    /// Save credential to DB
-    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()>;
+    /// Save credential to DB.
+    ///
+    /// Returns the key in DB. When we fetch courses, we use this key to
+    /// get the credentials.
+    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<String>;
 }
