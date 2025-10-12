@@ -1,10 +1,10 @@
-use super::app::Route;
-use super::utils::Result;
-use crate::gui::utils::{ClientState, CustomError, ResultExt};
+use super::super::app::Route;
+use super::super::utils::{ButtonWithLoading, ClientState, CustomError, Hero, Result, ResultExt};
 use dioxus::prelude::{
     server_fn::{ServerFn, error::NoCustomError},
     *,
 };
+use std::ops::Not;
 use tracing::{debug, info};
 
 #[component]
@@ -18,17 +18,18 @@ pub fn SchoolAPISelect() -> Element {
         session_id
     });
     let active_idx = use_signal(|| 0);
+    let mut loading_next_page = use_signal(|| false);
 
     rsx! {
         Hero {
             image: "https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg",
 
             h1 {
-                class: "mb-5 text-5xl font-bold",
+                class: "mb-5 text-5xl font-bold text-neutral-content",
                 "欢迎来到南哪另一课表"
             }
             p {
-                class: "mb-5",
+                class: "mb-5 text-neutral-content",
                 "请选择你要用的接口："
             }
 
@@ -48,12 +49,13 @@ pub fn SchoolAPISelect() -> Element {
                 p { "无法获取会话" }
             }
 
-            button {
+            ButtonWithLoading {
                 class: "btn btn-primary",
                 onclick:  move |event| async move {
                     if let Some(Ok(adapters)) = adapters() &&
                         let Some(adapter_name) = adapters.get(active_idx()) &&
                         let Some(Ok(session_id)) = session_id(){
+                        loading_next_page.set(true);
                         set_school(adapter_name.to_string(), session_id).await?;
                         info!("Selecting school: {}", adapter_name);
 
@@ -63,26 +65,6 @@ pub fn SchoolAPISelect() -> Element {
                     Ok(())
                 },
                 "下一步"
-            }
-        }
-    }
-}
-
-#[component]
-fn Hero(image: Option<String>, children: Element) -> Element {
-    rsx! {
-        div {
-            class: "hero min-h-screen",
-            style: if let Some(image)=image { "background-image: url({image})" } else { "" },
-
-            div { class: "hero-overlay" }
-            div {
-                class: "hero-content text-neutral-content text-center",
-
-                div {
-                    // class: "max-w-md",
-                    {children}
-                }
             }
         }
     }

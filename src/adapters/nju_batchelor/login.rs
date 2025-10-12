@@ -164,10 +164,11 @@ impl LoginSession for Session {
         &self.id
     }
 
-    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<()> {
+    async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<String> {
         let cred: Box<LoginCredential> = cred
             .downcast()
             .map_err(|_| anyhow!("Got invalid credential when saving to db, downcasting failed"))?;
+        let db_key = cred.key.clone();
         let mut connection = self.db.lock().await;
         let connection_ref: &mut SqliteConnection = &mut *connection;
 
@@ -175,7 +176,7 @@ impl LoginSession for Session {
             .values(*cred)
             .execute(connection_ref)?;
 
-        Ok(())
+        Ok(db_key)
     }
 }
 
@@ -214,28 +215,36 @@ impl Session {
 
 /// Extract some attributes on the page needed for POST requests.
 fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>> {
-    todo!();
-    let names = login_page.xpath("//form[@id='casLoginForm']/input/@name")?;
-    let values = login_page.xpath("//form[@id='casLoginForm']/input/@value")?;
+    let variables = login_page.xpath("//form[@id='casLoginForm']/input")?;
 
     let mut context = HashMap::new();
 
-    for (name, value) in names.into_iter().zip(values.into_iter()) {
-        context.insert(
-            name.as_node()?
-                .as_non_tree_node()?
-                .as_attribute_node()?
-                .value
-                .clone(),
-            value
-                .as_node()?
-                .as_non_tree_node()?
-                .as_attribute_node()?
-                .value
-                .clone(),
-        );
+    for variable in variables.into_iter() {
+        let attrs = &variable
+            .as_node()?
+            .as_tree_node()?
+            .data
+            .as_element_node()?
+            .attributes;
+        let name = attrs.iter().find_map(|x| {
+            if x.name == "name" {
+                Some(x.value.clone())
+            } else {
+                None
+            }
+        });
+        let value = attrs.iter().find_map(|x| {
+            if x.name == "value" {
+                Some(x.value.clone())
+            } else {
+                None
+            }
+        });
+        let (Some(name), Some(value)) = (name, value) else {
+            continue;
+        };
+        context.insert(name, value);
     }
-    debug!("Context: {:#?}", context);
 
     Ok(context)
 }
@@ -280,7 +289,7 @@ async fn build_client() -> Result<(Client, Arc<Jar>)> {
     Ok((client, jar))
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 #[diesel(table_name = super::db_schema::castgc)]
 pub struct LoginCredential {
     /// The session ID
@@ -314,6 +323,8 @@ impl From<RowLoginCredential> for LoginCredential {
         }
     }
 }
+
+// === Utils for using xpath easier ===
 
 trait ToXpathTree {
     fn xptree(&self) -> Result<XpathItemTree>;

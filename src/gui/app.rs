@@ -1,7 +1,8 @@
 use crate::gui::utils::ClientState;
 
-use super::login::Login;
-use super::select_school::SchoolAPISelect;
+use super::steps::login::Login;
+use super::steps::select_school::SchoolAPISelect;
+use super::steps::view_link::ViewLink;
 use dioxus::prelude::*;
 use tracing::info;
 
@@ -16,13 +17,18 @@ pub(super) enum Route {
     SchoolAPISelect,
     #[route("/login")]
     Login {},
-    // #[route("/view_link")]
-    // SubscriptionLink,
+    #[route("/view_link")]
+    ViewLink,
 }
 
 #[component]
 pub fn App() -> Element {
-    let client_state = use_context_provider(|| Signal::new(ClientState { session_id: None }));
+    let client_state = use_context_provider(|| {
+        Signal::new(ClientState {
+            session_id: None,
+            db_key: None,
+        })
+    });
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
