@@ -23,12 +23,7 @@ pub(super) enum Route {
 
 #[component]
 pub fn App() -> Element {
-    let client_state = use_context_provider(|| {
-        Signal::new(ClientState {
-            session_id: None,
-            db_key: None,
-        })
-    });
+    let _client_state = use_context_provider(|| Signal::new(ClientState::default()));
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }

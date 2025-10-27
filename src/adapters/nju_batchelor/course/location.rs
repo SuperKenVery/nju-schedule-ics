@@ -1,4 +1,4 @@
-use crate::adapters::location::GeoLocation;
+use crate::adapters::course::GeoLocation;
 
 impl GeoLocation {
     pub fn from_name_and_campus(location: &str, _campus: &str) -> Option<Self> {

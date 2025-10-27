@@ -32,7 +32,7 @@ use std::error::Error;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
-use tracing::debug;
+use tracing::{debug, info};
 use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
@@ -220,30 +220,16 @@ fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>>
     let mut context = HashMap::new();
 
     for variable in variables.into_iter() {
-        let attrs = &variable
-            .as_node()?
-            .as_tree_node()?
-            .data
-            .as_element_node()?
-            .attributes;
-        let name = attrs.iter().find_map(|x| {
-            if x.name == "name" {
-                Some(x.value.clone())
-            } else {
-                None
-            }
-        });
-        let value = attrs.iter().find_map(|x| {
-            if x.name == "value" {
-                Some(x.value.clone())
-            } else {
-                None
-            }
-        });
-        let (Some(name), Some(value)) = (name, value) else {
+        let node = &variable.as_node()?.as_tree_node()?.data.as_element_node()?;
+        let (Some("hidden"), Some(name), Some(value)) = (
+            node.get_attribute("type"),
+            node.get_attribute("name").or(node.get_attribute("id")),
+            node.get_attribute("value"),
+        ) else {
             continue;
         };
-        context.insert(name, value);
+        info!("Context: adding name={}, value={}", name, value);
+        context.insert(name.to_string(), value.to_string());
     }
 
     Ok(context)

@@ -3,6 +3,7 @@ use crate::adapters::traits::{Credentials, LoginSession, School};
 use crate::server::config::Config;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use derivative::Derivative;
+use diesel::prelude::*;
 use diesel::{Connection, SqliteConnection};
 use dioxus::prelude::*;
 use image::DynamicImage;
@@ -30,9 +31,27 @@ impl ServerState {
             db: Arc::new(Mutex::new(SqliteConnection::establish(&cfg.db_path)?)),
             site_url: cfg.site_url,
             unfinished_login_sessions: Arc::new(Mutex::new(HashMap::new())),
-            // db: SqlitePool::connect(&cfg.db_path).await?,
         })
     }
+}
+
+#[derive(Insertable, Clone)]
+#[diesel(table_name = crate::schema::key_to_school)]
+pub struct KeyToSchool {
+    /// The key used for getting your schedule
+    key: String,
+    /// The name of school adapter api
+    school: String,
+}
+
+#[derive(Queryable)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+struct RowKeyToSchool {
+    id: Option<i32>,
+    /// The key used for getting your schedule
+    key: String,
+    /// The name of school adapter api
+    school: String,
 }
 
 /// An unfinished login session.
@@ -70,6 +89,7 @@ impl UnfinishedLoginSession {
         let FromContext(state): FromContext<ServerState> = extract().await?;
 
         let school: Arc<dyn School> = school_adapter_from_name(&school_name, state.db)
+            .await
             .context("No such school adapter")?
             .into();
         *self = Self::SelectedSchool {
@@ -94,6 +114,7 @@ impl UnfinishedLoginSession {
         username: String,
         password: String,
         captcha_answer: String,
+        db: Arc<Mutex<SqliteConnection>>,
     ) -> Result<()> {
         let Self::SelectedSchool { school, session } = self else {
             bail!("Not in SelectedSchool when calling `login`");
@@ -101,7 +122,16 @@ impl UnfinishedLoginSession {
 
         let cred = session.login(username, password, captcha_answer).await?;
         let cred_db_key = session.save_cred_to_db(cred.clone()).await?;
-        todo!("save the correspondance between the db key and school adapter api");
+
+        // let correspondance = KeyToSchool {
+        //     key: cred_db_key.clone(),
+        //     school: school.name().to_string(),
+        // };
+        // let _inserted = diesel::insert_into(crate::schema::key_to_school::dsl::key_to_school)
+        //     .values(correspondance)
+        //     .execute(&mut *(db.lock().await))?;
+        //
+        // Put school api name in URL.
 
         *self = Self::Finished {
             school: school.clone(),

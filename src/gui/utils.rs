@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use daisy_rsx::marketing::customer_logos::Customers;
 use dioxus::prelude::{server_fn::error::NoCustomError, *};
 use js_sys::{Array, Uint8Array};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display},
     str::FromStr,
@@ -91,7 +92,7 @@ pub fn ButtonWithLoading(
 // === Client State ===
 
 /// The global app state for web page.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ClientState {
     /// The session_id for this session.
     /// Points to an UnfinishedLoginSession in server memory.
@@ -99,6 +100,8 @@ pub struct ClientState {
     /// The key for login credentials.
     /// Points to a record in server database. Only exists after logging in.
     pub db_key: Option<String>,
+    /// The school adapter api selected for this session
+    pub school_adapter_api: Option<String>,
 }
 
 // === Custom Error and Some extensions on Result ===
@@ -111,7 +114,7 @@ pub struct ClientState {
 /// the custom error has to implement [ `std::error::Error`], so the default
 /// [`NoCustomError`] cannot be used. In order to use it inside ServerFnError,
 /// it has to implement [`FromStr`] so [`anyhow::Error`] isn't ok.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomError {
     inner: String,
 }

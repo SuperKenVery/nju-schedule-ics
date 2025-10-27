@@ -1,8 +1,8 @@
 use super::interfaces;
 use crate::adapters::{
-    location::GeoLocation, nju_batchelor::course::interfaces::all_semesters, traits::Course,
+    course::Course, course::GeoLocation, nju_batchelor::course::interfaces::all_semesters,
 };
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use chrono::{NaiveDate, Utc};
 use reqwest::Client;
 

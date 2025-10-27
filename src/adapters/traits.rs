@@ -1,4 +1,4 @@
-use super::location::GeoLocation;
+use super::course::Course;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -15,12 +15,23 @@ use tokio::sync::Mutex;
 ///
 /// A physical school can have multiple APIs, which corresponds to
 /// multiple [`School`]s here
+#[async_trait]
 pub trait School: Login + CoursesProvider + Send + Sync + Debug {
-    fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
+    /// Create an instance. Do database migrations if needed.
+    async fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
     where
         Self: Sized;
 
-    fn name(&self) -> &str;
+    /// The name for this api adapter.
+    fn adapter_name(&self) -> &str;
+
+    /// The name of the school.
+    fn school_name(&self) -> &str;
+
+    /// The timezone of school, in Utc.
+    ///
+    /// For example, Shanghai is Utc+8, so returns positive 8.
+    fn school_timezone(&self) -> i32;
 }
 
 /// Supports logging in to the school.
@@ -39,33 +50,11 @@ pub trait Login {
     ) -> Result<ClientWithMiddleware>;
 }
 
-/// A course
-pub struct Course {
-    /// Course name
-    pub name: String,
-    /// All times of course, including each one across the semester.
-    /// Format is `Vec<(start_time, end_time)>`.
-    pub time: Vec<(DateTime<Utc>, DateTime<Utc>)>,
-    /// The location of this course.
-    pub location: Option<String>,
-    /// The latitide and longtitude of the course location.
-    pub geo: Option<GeoLocation>,
-    /// The campus of this course
-    pub campus: Option<String>,
-    /// Additional notes.
-    ///
-    /// This would be in the notes area of calendar event, and you can
-    /// include anything like notes, teacher, notice or whatsoever.
-    ///
-    /// When displayed, the vec of string will be concatenated with
-    /// new lines (each one in its own line)
-    pub notes: Vec<String>,
-}
-
 /// Supports getting courses from school.
+#[async_trait]
 pub trait CoursesProvider {
     /// Get courses
-    fn courses(&self, client: &Client) -> Vec<Course>;
+    async fn courses(&self, client: &ClientWithMiddleware) -> Result<Vec<Course>>;
 }
 
 /// The login credential for a school.
