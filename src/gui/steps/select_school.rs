@@ -6,6 +6,7 @@ use dioxus::prelude::{
 };
 use std::ops::Not;
 use tracing::{debug, info};
+use urlencoding::encode as url_encode;
 
 #[component]
 pub fn SchoolAPISelect() -> Element {
@@ -56,7 +57,8 @@ pub fn SchoolAPISelect() -> Element {
                         let Some(adapter_name) = adapters.get(active_idx()) &&
                         let Some(Ok(session_id)) = session_id(){
                         loading_next_page.set(true);
-                        set_school(adapter_name.to_string(), session_id).await?;
+                        set_school(adapter_name.to_string(), session_id.clone()).await?;
+                        (*client_state.write()).school_adapter_api = Some(adapter_name.to_owned());
                         info!("Selecting school: {}", adapter_name);
 
                         let nav = navigator();

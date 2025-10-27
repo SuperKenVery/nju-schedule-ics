@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use crate::gui::utils::to_blob_url;
 
+use super::super::app::Route;
 use super::super::utils::{
     ButtonWithLoading, Centered, ClientState, CustomError, Hero, Result, ResultExt,
 };
@@ -73,6 +74,9 @@ pub fn Login() -> Element {
                         if let Some(session_id) = client_state().session_id {
                             let db_key = login_for_session(session_id, username(), password(), captcha_answer()).await?;
                             (*(client_state.write())).db_key = Some(db_key);
+
+                            let nav = navigator();
+                            nav.push(Route::ViewLink);
                         }
 
                         Ok(())
@@ -168,7 +172,7 @@ async fn login_for_session(
         .to_sfn()?;
 
     session
-        .login(username, password, captcha_answer)
+        .login(username, password, captcha_answer, state.db.clone())
         .await
         .to_sfn()?;
 
