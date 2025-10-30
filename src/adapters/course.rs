@@ -1,3 +1,5 @@
+//! Defines the [`Course`] struct and how it converts to an iCalendar file.
+
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use dioxus::html::g::format;
@@ -62,66 +64,62 @@ impl GeoLocation {
 
 const TIME_FMT: &str = "%Y%m%dT%H%M%S";
 impl Course {
-    pub fn to_events<'a, 'b>(
-        self,
-        school: Arc<dyn School>,
-        tzid: &'b str,
-    ) -> Result<Vec<Event<'a>>> {
-        let mut base_event = Event::new(
-            Uuid::new_v4().to_string(),
-            chrono::Utc::now().format(TIME_FMT).to_string(),
-        );
-
-        // Name
-        base_event.push(Summary::new(self.name.clone()));
-
-        // Location
-        if let Some(location) = self.location.clone() {
-            base_event.push(Location::new(format!(
-                "{}\n{}",
-                location,
-                school.school_name()
-            )));
-            if let Some(geo) = self.geo {
-                base_event.push(Geo::new(geo.to_ical_str()));
-                let mut apple_addr =
-                    Property::new("X-APPLE-STRUCTURED-LOCATION", geo.to_apple_location_str());
-                apple_addr.add(Parameter::new(
-                    "X-ADDRESS",
-                    school.school_name().to_string(),
-                ));
-                apple_addr.add(Parameter::new("X-TITLE", location.clone()));
-                base_event.push(apple_addr);
-            }
-        }
-
-        // Notes
-        let mut notes = "".to_string();
-        if let Some(campus) = self.campus {
-            notes += format!("{}\n", campus).as_str();
-        }
-        for note in self.notes {
-            notes += format!("{}\n", note).as_str();
-        }
-        base_event.push(Description::new(notes.replace("\n", "\\n")));
-
+    pub fn to_events<'a, 'b>(&self, school: &dyn School, tzid: &'b str) -> Result<Vec<Event<'a>>> {
         Ok(self
             .time
             .iter()
             .map(|time| {
-                let mut timed_event = base_event.clone();
+                let mut event = Event::new(
+                    Uuid::new_v4().to_string(),
+                    chrono::Utc::now().format(TIME_FMT).to_string(),
+                );
+
+                // Name
+                event.push(Summary::new(self.name.clone()));
+
+                // Location
+                if let Some(location) = self.location.clone() {
+                    event.push(Location::new(format!(
+                        "{}\\n{}",
+                        location,
+                        school.school_name()
+                    )));
+                    if let Some(geo) = self.geo {
+                        event.push(Geo::new(geo.to_ical_str()));
+                        let mut apple_addr = Property::new(
+                            "X-APPLE-STRUCTURED-LOCATION",
+                            geo.to_apple_location_str(),
+                        );
+                        apple_addr.add(Parameter::new(
+                            "X-ADDRESS",
+                            school.school_name().to_string(),
+                        ));
+                        apple_addr.add(Parameter::new("X-TITLE", location.clone()));
+                        event.push(apple_addr);
+                    }
+                }
+
+                // Notes
+                let mut notes = "".to_string();
+                if let Some(campus) = &self.campus {
+                    notes += format!("{}\n", campus).as_str();
+                }
+                for note in &self.notes {
+                    notes += format!("{}\n", note).as_str();
+                }
+                event.push(Description::new(notes.replace("\n", "\\n")));
 
                 let timezone = TzIDParam::new(tzid.to_string());
 
                 let mut start = DtStart::new(time.0.format(TIME_FMT).to_string());
                 start.add(timezone.clone());
-                timed_event.push(start);
+                event.push(start);
 
                 let mut end = DtEnd::new(time.1.format(TIME_FMT).to_string());
                 end.add(timezone.clone());
-                timed_event.push(end);
+                event.push(end);
 
-                timed_event
+                event
             })
             .collect())
     }

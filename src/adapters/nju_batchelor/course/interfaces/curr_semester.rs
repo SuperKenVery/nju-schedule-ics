@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 
 use anyhow::Result;
-use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -36,7 +36,7 @@ pub struct Semester {
 }
 
 impl Response {
-    pub async fn from_req(client: &Client) -> Result<Self> {
+    pub async fn from_req(client: &ClientWithMiddleware) -> Result<Self> {
         Ok(client
             .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
             .send()

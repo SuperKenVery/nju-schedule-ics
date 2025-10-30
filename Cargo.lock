@@ -4177,6 +4177,7 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "dioxus 0.6.3",
+ "dioxus-logger 0.6.2",
  "dioxus-primitives",
  "downcast-rs",
  "dyn-clone",

@@ -50,6 +50,7 @@ wasm-bindgen = "0.2.101"
 dyn-clone = "1.0.20"
 diesel_migrations = "2.3.0"
 urlencoding = "2.1.3"
+dioxus-logger = "0.6.2"
 
 [features]
 default = []
