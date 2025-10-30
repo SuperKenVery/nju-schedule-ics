@@ -98,6 +98,7 @@
         #   rustToolchain.${pkgs.system}.rust-src
         # }/lib/rustlib/src/rust/library";
         RUST_BACKTRACE = "1";
+        RUST_LOG = "warn,nju_schedule_ics=debug";
       });
     });
 

@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use diesel::SqliteConnection;
 use downcast_rs::{Downcast, impl_downcast};
 use dyn_clone::DynClone;
+use ics::TimeZone;
 use image::DynamicImage;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
@@ -16,7 +17,7 @@ use tokio::sync::Mutex;
 /// A physical school can have multiple APIs, which corresponds to
 /// multiple [`School`]s here
 #[async_trait]
-pub trait School: Login + CoursesProvider + Send + Sync + Debug {
+pub trait School: Login + CoursesProvider + CalendarHelper + Send + Sync + Debug {
     /// Create an instance. Do database migrations if needed.
     async fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
     where
@@ -24,14 +25,6 @@ pub trait School: Login + CoursesProvider + Send + Sync + Debug {
 
     /// The name for this api adapter.
     fn adapter_name(&self) -> &str;
-
-    /// The name of the school.
-    fn school_name(&self) -> &str;
-
-    /// The timezone of school, in Utc.
-    ///
-    /// For example, Shanghai is Utc+8, so returns positive 8.
-    fn school_timezone(&self) -> i32;
 }
 
 /// Supports logging in to the school.
@@ -94,4 +87,10 @@ pub trait LoginSession: Send + Sync + Debug {
     /// Returns the key in DB. When we fetch courses, we use this key to
     /// get the credentials.
     async fn save_cred_to_db(&self, cred: Box<dyn Credentials>) -> Result<String>;
+}
+
+/// Helps generating iCalendar calendar and events
+pub trait CalendarHelper {
+    /// The name of the school.
+    fn school_name(&self) -> &str;
 }

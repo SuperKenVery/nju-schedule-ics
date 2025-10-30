@@ -1,13 +1,13 @@
 mod course;
-use crate::schema as db_schema;
+use crate::{adapters::traits::CalendarHelper, schema as db_schema};
 mod login;
-
 use crate::adapters::traits::School;
 use anyhow::Result;
 use async_trait::async_trait;
 use derivative::Derivative;
 use diesel::SqliteConnection;
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+use ics::{Standard, TimeZone};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::info;
@@ -38,13 +38,11 @@ impl School for NJUBatchelorAdaptor {
     fn adapter_name(&self) -> &str {
         "南京大学本科生"
     }
+}
 
+impl CalendarHelper for NJUBatchelorAdaptor {
     fn school_name(&self) -> &str {
         "南京大学"
-    }
-
-    fn school_timezone(&self) -> i32 {
-        8
     }
 }
 

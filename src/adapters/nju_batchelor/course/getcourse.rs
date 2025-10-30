@@ -5,8 +5,9 @@ use crate::adapters::{
 use anyhow::{Result, anyhow, bail};
 use chrono::{NaiveDate, Utc};
 use reqwest::Client;
+use reqwest_middleware::ClientWithMiddleware;
 
-pub async fn get_courses(client: &Client) -> Result<Vec<Course>> {
+pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
     let current_semester = get_current_semester_id(client).await?;
     let courses = interfaces::courses::Response::from_req(client, &current_semester).await?;
     let semester_start = get_semester_start(client, &current_semester).await?;
@@ -20,7 +21,7 @@ pub async fn get_courses(client: &Client) -> Result<Vec<Course>> {
         .collect())
 }
 
-async fn get_current_semester_id(client: &Client) -> Result<String> {
+async fn get_current_semester_id(client: &ClientWithMiddleware) -> Result<String> {
     let mut curr_semester = interfaces::curr_semester::Response::from_req(client).await?;
     let curr_semester_id = curr_semester
         .datas
@@ -34,7 +35,7 @@ async fn get_current_semester_id(client: &Client) -> Result<String> {
 }
 
 async fn get_semester_start(
-    client: &Client,
+    client: &ClientWithMiddleware,
     current_semester_id: &str,
 ) -> Result<chrono::NaiveDate> {
     let all_semesters = interfaces::all_semesters::Response::from_req(client).await?;
@@ -60,7 +61,7 @@ async fn get_semester_start(
 }
 
 impl interfaces::courses::Course {
-    fn to_course(self, semester_start: &chrono::NaiveDate) -> Course {
+    pub fn to_course(self, semester_start: &chrono::NaiveDate) -> Course {
         let time = self.get_time();
         let all_course_times = match time {
             Some((start, end)) => self

@@ -21,7 +21,7 @@ pub fn ViewLink() -> Element {
     ) {
         (Some(Ok(prefix)), Some(adapter_api), Some(key)) => {
             format!(
-                "{}/{}/{}",
+                "{}/calendar/{}/{}/schedule.ics",
                 prefix.replace("https", "webcal"),
                 url_encode(adapter_api.as_str()),
                 key

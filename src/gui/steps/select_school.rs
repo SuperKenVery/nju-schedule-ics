@@ -1,9 +1,6 @@
 use super::super::app::Route;
 use super::super::utils::{ButtonWithLoading, ClientState, CustomError, Hero, Result, ResultExt};
-use dioxus::prelude::{
-    server_fn::{ServerFn, error::NoCustomError},
-    *,
-};
+use dioxus::prelude::*;
 use std::ops::Not;
 use tracing::{debug, info};
 use urlencoding::encode as url_encode;
@@ -97,9 +94,17 @@ fn SchoolAdapterMenu(adapters: Vec<String>, active_index: Signal<usize>) -> Elem
 /// Get available adapters, also getting a session ID.
 #[server]
 pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
-    use crate::adapters::all_school_adapters::school_adapters;
+    use crate::server::state::ServerState;
 
-    Ok(school_adapters().iter().map(|x| x.to_string()).collect())
+    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
+    let school_adapters = state.school_adapters.lock().await;
+
+    Ok(school_adapters
+        .keys()
+        .cloned()
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect())
 }
 
 /// Get a new UnfinishedLoginSession

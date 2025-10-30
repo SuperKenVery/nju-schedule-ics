@@ -1,3 +1,4 @@
+use anyhow::Error;
 /// Below code is taken from axum example, licensed under MIT
 /// Enable `?` error handling on handlers
 use axum::{
@@ -6,8 +7,6 @@ use axum::{
 };
 use tracing::error;
 use uuid::Uuid;
-
-use anyhow::Error;
 
 /// Make our own error that wraps `anyhow::Error`.
 #[derive(Debug)]

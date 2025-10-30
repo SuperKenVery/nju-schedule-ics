@@ -1,4 +1,4 @@
-use crate::adapters::all_school_adapters::school_adapter_from_name;
+use crate::adapters::nju_batchelor::NJUBatchelorAdaptor;
 use crate::adapters::traits::{Credentials, LoginSession, School};
 use crate::server::config::Config;
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -23,14 +23,24 @@ pub struct ServerState {
     /// - After that, we associate the session ID with a [`Credentials`], storing that in DB.
     /// - Now this session is no longer an "unfinished login session", and is removed from this HashMap.
     pub unfinished_login_sessions: Arc<Mutex<HashMap<String, UnfinishedLoginSession>>>,
+    pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
 }
 
 impl ServerState {
-    pub fn from_config(cfg: Config) -> Result<Self> {
+    pub async fn from_config(cfg: Config) -> Result<Self> {
+        let db = Arc::new(Mutex::new(SqliteConnection::establish(&cfg.db_path)?));
+
+        let mut school_adapters = HashMap::<&'static str, Arc<dyn School>>::new();
+        school_adapters.insert(
+            "南京大学本科生",
+            Arc::new(NJUBatchelorAdaptor::new(db.clone()).await),
+        );
+
         Ok(Self {
-            db: Arc::new(Mutex::new(SqliteConnection::establish(&cfg.db_path)?)),
+            db,
             site_url: cfg.site_url,
             unfinished_login_sessions: Arc::new(Mutex::new(HashMap::new())),
+            school_adapters: Arc::new(Mutex::new(school_adapters)),
         })
     }
 }
@@ -88,10 +98,13 @@ impl UnfinishedLoginSession {
         ensure!(matches!(self, Self::Started), "Not in started");
         let FromContext(state): FromContext<ServerState> = extract().await?;
 
-        let school: Arc<dyn School> = school_adapter_from_name(&school_name, state.db)
+        let school: Arc<dyn School> = state
+            .school_adapters
+            .lock()
             .await
+            .get(&school_name.as_str())
             .context("No such school adapter")?
-            .into();
+            .clone();
         *self = Self::SelectedSchool {
             school: school.clone(),
             session: school.new_login_session().await?.into(),
