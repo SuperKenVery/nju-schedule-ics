@@ -1,5 +1,6 @@
 use crate::adapters::nju_batchelor::NJUBatchelorAdaptor;
 use crate::adapters::traits::{Credentials, LoginSession, School};
+use crate::plugins::{PlugIn, get_plugins};
 use crate::server::config::Config;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use derivative::Derivative;
@@ -24,6 +25,7 @@ pub struct ServerState {
     /// - Now this session is no longer an "unfinished login session", and is removed from this HashMap.
     pub unfinished_login_sessions: Arc<Mutex<HashMap<String, UnfinishedLoginSession>>>,
     pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    pub plugins: Vec<Arc<dyn PlugIn>>,
 }
 
 impl ServerState {
@@ -41,6 +43,7 @@ impl ServerState {
             site_url: cfg.site_url,
             unfinished_login_sessions: Arc::new(Mutex::new(HashMap::new())),
             school_adapters: Arc::new(Mutex::new(school_adapters)),
+            plugins: get_plugins().await?,
         })
     }
 }

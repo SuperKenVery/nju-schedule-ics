@@ -176,9 +176,11 @@ async fn login_for_session(
         .await
         .to_sfn()?;
 
-    let UnfinishedLoginSession::Finished { cred_db_key, .. } = session else {
+    let UnfinishedLoginSession::Finished { cred_db_key, .. } = session.clone() else {
         return Err(anyhow!("Login didn't finish")).to_sfn();
     };
 
-    Ok(cred_db_key.clone())
+    sessions.remove(&session_id);
+
+    Ok(cred_db_key)
 }
