@@ -2,6 +2,7 @@ use super::error::AppError;
 use super::state::ServerState;
 use crate::adapters::course::Course;
 use crate::adapters::traits::{CalendarHelper, Login, School};
+use crate::plugins::PlugIn;
 use anyhow::Context;
 use anyhow::Result;
 use axum::extract::{Path, State};
@@ -32,6 +33,8 @@ pub async fn get_calendar_file(
         .context("No such key. URL might be wrong.")?;
     let client = school.create_authenticated_client(cred).await?;
     let courses = school.courses(&client).await?;
+
+    let courses = state.plugins.pre_generate_calendar(&*school, courses);
 
     let calendar = calendar_from_courses(&*school, &courses)?;
     let mut calendar_bytes_buf = vec![];

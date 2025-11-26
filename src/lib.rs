@@ -14,3 +14,7 @@ pub mod server;
 /// 数据库表格式
 #[cfg(feature = "server")]
 pub mod schema;
+
+/// 学校之外的逻辑处理，比如调休
+#[cfg(feature = "server")]
+pub mod plugins;
