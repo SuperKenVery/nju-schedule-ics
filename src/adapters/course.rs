@@ -2,14 +2,12 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use dioxus::html::g::format;
 use ics::{
     Event,
     components::{Parameter, Property},
     parameters::TzIDParam,
     properties::{Description, DtEnd, DtStart, Geo, Location, Summary},
 };
-use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::adapters::traits::School;

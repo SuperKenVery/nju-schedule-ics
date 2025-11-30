@@ -1,5 +1,5 @@
 use super::NJUBatchelorAdaptor;
-use super::db_schema::castgc::dsl::{castgc, key};
+
 use crate::adapters::nju_batchelor::login;
 use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
@@ -10,11 +10,7 @@ use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use base64::{Engine as _, engine::general_purpose};
 use derivative::Derivative;
-use diesel::SelectableHelper;
-use diesel::{
-    ExpressionMethods, Insertable, QueryDsl, Queryable, RunQueryDsl, Selectable, SqliteConnection,
-    prelude::QueryableByName,
-};
+
 use image::{DynamicImage, ImageReader};
 use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
@@ -32,6 +28,8 @@ use std::error::Error;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
+use tower_sessions_sqlx_store::sqlx::prelude::FromRow;
+use tower_sessions_sqlx_store::sqlx::{SqlitePool, sqlite};
 use tracing::{debug, info};
 use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
@@ -45,13 +43,13 @@ impl Login for NJUBatchelorAdaptor {
     async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>> {
         let mut connection = self.connection.lock().await;
 
-        let queried = castgc
-            .filter(key.eq(session_id))
-            .first::<RowLoginCredential>(&mut *connection)
-            .ok()?;
-        let cred: LoginCredential = queried.into();
+        todo!()
+        // let cred = castgc
+        //     .filter(key.eq(session_id))
+        //     .first::<LoginCredential>(&mut *connection)
+        //     .ok()?;
 
-        Some(Box::new(cred))
+        // Some(Box::new(cred))
     }
 
     async fn create_authenticated_client(
@@ -94,12 +92,11 @@ impl Login for NJUBatchelorAdaptor {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Session {
+    db: Arc<Mutex<SqlitePool>>,
     id: String,
     client: reqwest::Client,
     captcha: DynamicImage,
     context: HashMap<String, String>,
-    #[derivative(Debug = "ignore")]
-    db: Arc<Mutex<SqliteConnection>>,
 }
 
 #[async_trait]
@@ -169,14 +166,16 @@ impl LoginSession for Session {
             .downcast()
             .map_err(|_| anyhow!("Got invalid credential when saving to db, downcasting failed"))?;
         let db_key = cred.key.clone();
-        let mut connection = self.db.lock().await;
-        let connection_ref: &mut SqliteConnection = &mut *connection;
 
-        let _inserted = diesel::insert_into(super::db_schema::castgc::dsl::castgc)
-            .values(*cred)
-            .execute(connection_ref)?;
+        todo!()
+        // let mut connection = self.db.lock().await;
+        // let connection_ref: &mut SqliteConnection = &mut *connection;
 
-        Ok(db_key)
+        // let _inserted = diesel::insert_into(super::db_schema::castgc::dsl::castgc)
+        //     .values(*cred)
+        //     .execute(connection_ref)?;
+
+        // Ok(db_key)
     }
 }
 
@@ -184,7 +183,7 @@ impl Session {
     /// Create a login session
     ///
     /// by requesting the login page
-    async fn new(db: Arc<Mutex<SqliteConnection>>) -> Result<Self> {
+    async fn new(db: Arc<Mutex<SqlitePool>>) -> Result<Self> {
         let (client, _jar) = build_client().await?;
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
@@ -275,39 +274,14 @@ async fn build_client() -> Result<(Client, Arc<Jar>)> {
     Ok((client, jar))
 }
 
-#[derive(Insertable, Clone)]
-#[diesel(table_name = super::db_schema::castgc)]
-pub struct LoginCredential {
+#[derive(FromRow, Clone)]
+struct LoginCredential {
     /// The session ID
     key: String,
     /// The CASTGC cookie
     value: String,
     /// Time last accessed
     last_access: chrono::NaiveDateTime,
-}
-
-#[derive(Queryable)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-struct RowLoginCredential {
-    id: Option<i32>,
-    /// The session ID
-    key: String,
-    /// The CASTGC cookie
-    value: String,
-    /// Time last accessed
-    last_access: chrono::NaiveDateTime,
-}
-
-impl Credentials for LoginCredential {}
-
-impl From<RowLoginCredential> for LoginCredential {
-    fn from(cred: RowLoginCredential) -> Self {
-        Self {
-            key: cred.key,
-            value: cred.value,
-            last_access: cred.last_access,
-        }
-    }
 }
 
 // === Utils for using xpath easier ===

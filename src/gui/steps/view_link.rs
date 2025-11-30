@@ -1,10 +1,7 @@
 use super::super::app::Route;
-use super::super::utils::{ButtonWithLoading, ClientState, CustomError, Hero, Result, ResultExt};
+use super::super::utils::{ButtonWithLoading, ClientState, Hero};
 use daisy_rsx::{Card, CardBody};
-use dioxus::prelude::{
-    server_fn::{ServerFn, error::NoCustomError},
-    *,
-};
+use dioxus::prelude::*;
 use std::ops::Not;
 use std::string;
 use tracing::{debug, info};
@@ -91,13 +88,13 @@ fn Howto(title: String, children: Element) -> Element {
     }
 }
 
+#[cfg(feature = "server")]
+use crate::server::state::ServerState;
+
 /// Get the protocol and host part of subscription link,
 /// without trailing slash.
-#[server]
-async fn get_subscription_link_prefix() -> Result<String, ServerFnError<CustomError>> {
-    use crate::server::state::ServerState;
-
-    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
+#[get("/api/subscription_prefix", state: ServerState)]
+async fn get_subscription_link_prefix() -> Result<String> {
     let site_url = &state.site_url;
     Ok(site_url.clone())
 }

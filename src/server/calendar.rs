@@ -9,17 +9,16 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::IntoResponse;
 use axum_macros::debug_handler;
+use dioxus::fullstack::FromResponse;
 use dioxus::prelude::*;
-use dioxus::prelude::{FromContext, extract};
 use ics::{ICalendar, Standard, TimeZone};
 use std::sync::Arc;
 use tracing::info;
 
-#[debug_handler]
-pub async fn get_calendar_file(
-    Path((school_adapter, key)): Path<(String, String)>,
-    State(state): State<ServerState>,
-) -> Result<impl IntoResponse, AppError> {
+struct CalendarRet(HeaderMap, Vec<u8>);
+
+#[get("/calendar/{school_adapter}/{key}/schedule.ics", state: State<ServerState>)]
+pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<CalendarRet> {
     let school: Arc<dyn School> = state
         .school_adapters
         .lock()
@@ -48,7 +47,21 @@ pub async fn get_calendar_file(
         HeaderValue::from_str("text/calendar")?,
     );
 
-    Ok((headers, calendar_bytes_buf))
+    Ok(CalendarRet(headers, calendar_bytes_buf))
+}
+
+impl FromResponse for CalendarRet {
+    async fn from_response(
+        res: dioxus_fullstack::ClientResponse,
+    ) -> std::result::Result<Self, ServerFnError> {
+        panic!("This is for calendar clients, never use it as server function.")
+    }
+}
+
+impl IntoResponse for CalendarRet {
+    fn into_response(self) -> axum::response::Response {
+        (self.0, self.1).into_response()
+    }
 }
 
 fn calendar_from_courses<'a, 'b: 'a>(

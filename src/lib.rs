@@ -1,7 +1,7 @@
 /// 对接各种学校的课表API
 ///
 /// 要适配一个新学校，你需要新建一个struct，然后为其实现[`adapters::traits::School`]，
-/// 最后在[`adapters::all_school_adapters::SCHOOL_ADAPTERS`]中把它加上。
+/// 最后在[`server::state::ServerState::from_config`]中把它加上。
 #[cfg(feature = "server")]
 pub mod adapters;
 
@@ -10,10 +10,6 @@ pub mod gui;
 
 /// http服务器
 pub mod server;
-
-/// 数据库表格式
-#[cfg(feature = "server")]
-pub mod schema;
 
 /// 学校之外的逻辑处理，比如调休
 #[cfg(feature = "server")]
