@@ -2,7 +2,6 @@ use super::course::Course;
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use diesel::SqliteConnection;
 use downcast_rs::{Downcast, impl_downcast};
 use dyn_clone::DynClone;
 use ics::TimeZone;
@@ -11,6 +10,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::Mutex;
+use tower_sessions_sqlx_store::sqlx::SqlitePool;
 
 /// An adapter for a school API.
 ///
@@ -19,7 +19,7 @@ use tokio::sync::Mutex;
 #[async_trait]
 pub trait School: Login + CoursesProvider + CalendarHelper + Send + Sync + Debug {
     /// Create an instance. Do database migrations if needed.
-    async fn new(db: Arc<Mutex<SqliteConnection>>) -> Self
+    async fn new(db: Arc<Mutex<SqlitePool>>) -> Self
     where
         Self: Sized;
 
@@ -54,6 +54,8 @@ pub trait CoursesProvider {
 pub trait Credentials: Downcast + Send + Sync + DynClone {}
 impl_downcast!(Credentials);
 dyn_clone::clone_trait_object!(Credentials);
+
+impl<T> Credentials for T where T: Downcast + Send + Sync + DynClone {}
 
 /// A login session for the user to login.
 ///

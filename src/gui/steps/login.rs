@@ -3,16 +3,11 @@ use std::io::Cursor;
 use crate::gui::utils::to_blob_url;
 
 use super::super::app::Route;
-use super::super::utils::{
-    ButtonWithLoading, Centered, ClientState, CustomError, Hero, Result, ResultExt,
-};
-use anyhow::{Context, anyhow};
+use super::super::utils::{ButtonWithLoading, Centered, ClientState, Hero};
+use anyhow::{Context, Result, anyhow, bail};
 use daisy_rsx::Button;
 use derivative::Derivative;
-use dioxus::{
-    html::textarea::placeholder,
-    prelude::{server_fn::error::NoCustomError, *},
-};
+use dioxus::{html::textarea::placeholder, prelude::*};
 use image::DynamicImage;
 use tracing::info;
 
@@ -23,14 +18,7 @@ pub fn Login() -> Element {
 
     let mut client_state = use_context::<Signal<ClientState>>();
     let img_src = use_resource(move || async move {
-        let image = get_captcha(
-            client_state
-                .read()
-                .session_id
-                .clone()
-                .context("No session found")?,
-        )
-        .await?;
+        let image = get_captcha().await?;
 
         Ok::<_, anyhow::Error>(to_blob_url(&image)?)
     });
@@ -71,13 +59,11 @@ pub fn Login() -> Element {
                     class: "btn btn-neutral mt-4",
                     type: "submit",
                     onclick: move |event| async move {
-                        if let Some(session_id) = client_state().session_id {
-                            let db_key = login_for_session(session_id, username(), password(), captcha_answer()).await?;
-                            (*(client_state.write())).db_key = Some(db_key);
+                        let db_key = login_for_session(username(), password(), captcha_answer()).await?;
+                        (*(client_state.write())).db_key = Some(db_key);
 
-                            let nav = navigator();
-                            nav.push(Route::ViewLink);
-                        }
+                        let nav = navigator();
+                        nav.push(Route::ViewLink);
 
                         Ok(())
                     },
@@ -132,55 +118,34 @@ fn InputField(
     }
 }
 
-#[server]
-async fn get_captcha(session_id: String) -> Result<Vec<u8>, ServerFnError<CustomError>> {
-    use crate::server::state::{ServerState, UnfinishedLoginSession};
-    use uuid::Uuid;
+#[cfg(feature = "server")]
+use crate::adapters::login_process::LoginProcess;
 
-    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
-    let sessions = state.unfinished_login_sessions.lock().await;
-    let session = sessions
-        .get(&session_id)
-        .context("No such session")
-        .to_sfn()?;
-
-    let captcha = session.get_captcha().await.to_sfn()?;
+#[get("/api/get_captcha", session: LoginProcess)]
+async fn get_captcha() -> Result<Vec<u8>> {
+    let captcha = session.get_captcha().await?;
 
     // Convert to PNG
     let mut png_bytes = Vec::new();
     let mut cursor = Cursor::new(&mut png_bytes);
-    captcha
-        .write_to(&mut cursor, image::ImageFormat::Png)
-        .to_sfn()?;
+    captcha.write_to(&mut cursor, image::ImageFormat::Png)?;
 
     Ok(png_bytes)
 }
 
-#[server]
+#[post("/api/login", mut session: LoginProcess)]
 async fn login_for_session(
-    session_id: String,
     username: String,
     password: String,
     captcha_answer: String,
-) -> Result<String, ServerFnError<CustomError>> {
-    use crate::server::state::{ServerState, UnfinishedLoginSession};
-    let FromContext(state): FromContext<ServerState> = extract().await.to_sfn()?;
-    let mut sessions = state.unfinished_login_sessions.lock().await;
-    let session = sessions
-        .get_mut(&session_id)
-        .context("No such session")
-        .to_sfn()?;
+) -> Result<String> {
+    session.login(username, password, captcha_answer).await?;
 
-    session
-        .login(username, password, captcha_answer, state.db.clone())
-        .await
-        .to_sfn()?;
-
-    let UnfinishedLoginSession::Finished { cred_db_key, .. } = session.clone() else {
-        return Err(anyhow!("Login didn't finish")).to_sfn();
+    let LoginProcess::Finished { cred_db_key, .. } = session else {
+        bail!("Login didn't finish");
     };
 
-    sessions.remove(&session_id);
-
     Ok(cred_db_key)
+
+    // TODO: Cleanup the leftover in LoginProcessManager.all_progresses
 }
