@@ -1,6 +1,6 @@
 use super::state::ServerState;
 use crate::adapters::course::Course;
-use crate::adapters::traits::{Login, School};
+use crate::adapters::traits::School;
 use crate::plugins::PlugIn;
 use anyhow::Context;
 use anyhow::Result;
@@ -50,7 +50,7 @@ pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<Ca
 
 impl FromResponse for CalendarRet {
     async fn from_response(
-        res: dioxus_fullstack::ClientResponse,
+        _res: dioxus_fullstack::ClientResponse,
     ) -> std::result::Result<Self, ServerFnError> {
         panic!("This is for calendar clients, never use it as server function.")
     }

@@ -4,8 +4,6 @@ use super::super::app::Route;
 use super::super::utils::{ButtonWithLoading, Hero};
 use anyhow::Result;
 use dioxus::prelude::*;
-use std::io::Cursor;
-use tracing::info;
 
 #[component]
 pub fn Login() -> Element {
@@ -25,7 +23,7 @@ pub fn Login() -> Element {
 
             FieldSet {
                 onsubmit: move |event| {
-                    info!("FieldSet got event: {:#?}", event);
+                    debug!("FieldSet got event: {:#?}", event);
                 },
                 InputField { name: "账号", input_type: "text", place_holder: "", bind: username }
                 InputField { name: "密码", input_type: "password", place_holder: "", bind: password }
@@ -50,7 +48,7 @@ pub fn Login() -> Element {
                 ButtonWithLoading {
                     class: "btn btn-neutral mt-4",
                     type: "submit",
-                    onclick: move |event| async move {
+                    onclick: move |_event| async move {
                         let _db_key = login_for_session(username(), password(), captcha_answer()).await?;
 
                         let nav = navigator();
@@ -114,6 +112,8 @@ use crate::adapters::login_process::LoginProcess;
 
 #[get("/api/get_captcha", session: LoginProcess)]
 async fn get_captcha() -> Result<Vec<u8>> {
+    use std::io::Cursor;
+
     let captcha = session.get_captcha().await?;
 
     // Convert to PNG

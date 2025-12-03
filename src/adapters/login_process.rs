@@ -16,7 +16,7 @@ use tower::{Layer, Service};
 use tower_cookies::Cookies;
 use uuid::Uuid;
 
-use crate::adapters::traits::{Credentials, LoginSession, School};
+use crate::adapters::traits::{LoginSession, School};
 use crate::server::state::ServerState;
 
 /// A login process. Its lifecycle is:
@@ -36,8 +36,6 @@ enum LoginProcessInner {
     },
     Finished {
         school: Arc<dyn School>,
-        #[derivative(Debug = "ignore")]
-        credentials: Box<dyn Credentials>,
         cred_db_key: String,
     },
 }
@@ -104,11 +102,10 @@ impl LoginProcess {
         };
 
         let cred = session.login(username, password, captcha_answer).await?;
-        let cred_db_key = session.save_cred_to_db(cred.clone()).await?;
+        let cred_db_key = session.save_cred_to_db(cred).await?;
 
         *inner = LoginProcessInner::Finished {
             school: school.clone(),
-            credentials: cred,
             cred_db_key: cred_db_key.clone(),
         };
 
@@ -137,20 +134,18 @@ impl LoginProcess {
     }
 }
 
-impl<S> FromRequestParts<S> for LoginProcess {
+impl<S: Sync> FromRequestParts<S> for LoginProcess {
     type Rejection = ServerFnError;
 
-    fn from_request_parts(
+    async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        state: &S,
-    ) -> impl Future<Output = std::result::Result<Self, Self::Rejection>> + Send {
-        async move {
-            Ok(parts
-                .extensions
-                .get::<Self>()
-                .expect("No LoginProcess found in extension. Is `LoginProcessManagerLayer` setup?")
-                .clone())
-        }
+        _state: &S,
+    ) -> std::result::Result<Self, Self::Rejection> {
+        Ok(parts
+            .extensions
+            .get::<Self>()
+            .expect("No LoginProcess found in extension. Is `LoginProcessManagerLayer` setup?")
+            .clone())
     }
 }
 

@@ -4,7 +4,7 @@ use anyhow::Result;
 use nju_schedule_ics::gui;
 
 #[cfg(feature = "server")]
-use nju_schedule_ics::server::server;
+use nju_schedule_ics::server::main as server;
 
 fn main() -> Result<()> {
     #[cfg(feature = "server")]

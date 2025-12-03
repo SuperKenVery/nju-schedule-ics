@@ -36,7 +36,7 @@ pub fn SchoolAPISelect() -> Element {
 
             ButtonWithLoading {
                 class: "btn btn-primary",
-                onclick:  move |event| async move {
+                onclick:  move |_event| async move {
                     if let Some(Ok(adapters)) = adapters() &&
                         let Some(adapter_name) = adapters.get(active_idx()) {
                         loading_next_page.set(true);

@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 pub struct HolidayPlugin {
     holidays: HashSet<NaiveDate>,
-    compensate_days: HashSet<NaiveDate>,
+    _compensate_days: HashSet<NaiveDate>,
 }
 
 fn build_client() -> Result<ClientWithMiddleware> {
@@ -70,7 +70,7 @@ impl HolidayPlugin {
 
         Ok(HolidayPlugin {
             holidays: holiday_dates,
-            compensate_days: compensate_dates,
+            _compensate_days: compensate_dates,
         })
     }
 
@@ -115,7 +115,7 @@ impl PlugIn for HolidayPlugin {
 }
 
 #[derive(Deserialize)]
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct ShuyzHolidayResponse {
     Name: String,
     Timezone: String,
@@ -123,7 +123,7 @@ struct ShuyzHolidayResponse {
 }
 
 #[derive(Deserialize)]
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct ShuyzHoliday {
     Name: String,
     StartDate: String,

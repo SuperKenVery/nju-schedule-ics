@@ -1,6 +1,6 @@
 /// HTTP服务器
 #[cfg(feature = "server")]
-pub mod server;
+pub mod main;
 
 /// 解析命令行参数
 #[cfg(feature = "server")]

@@ -51,7 +51,7 @@ where
     type Rejection = ServerFnError;
 
     async fn from_request_parts(
-        parts: &mut axum::http::request::Parts,
+        _parts: &mut axum::http::request::Parts,
         state: &S,
     ) -> std::result::Result<Self, Self::Rejection> {
         Ok(ServerState::from_ref(state))
