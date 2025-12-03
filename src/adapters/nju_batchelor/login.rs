@@ -24,12 +24,12 @@ use skyscraper::xpath::{
         data_model::{Node, XpathItem},
     },
 };
+use sqlx::prelude::FromRow;
+use sqlx::{SqlitePool, sqlite};
 use std::error::Error;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
-use tower_sessions_sqlx_store::sqlx::prelude::FromRow;
-use tower_sessions_sqlx_store::sqlx::{SqlitePool, sqlite};
 use tracing::{debug, info};
 use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
@@ -41,15 +41,16 @@ impl Login for NJUBatchelorAdaptor {
     }
 
     async fn get_cred_from_db(&self, session_id: &str) -> Option<Box<dyn Credentials>> {
-        let mut connection = self.connection.lock().await;
+        let connection = self.connection.lock().await;
 
-        todo!()
-        // let cred = castgc
-        //     .filter(key.eq(session_id))
-        //     .first::<LoginCredential>(&mut *connection)
-        //     .ok()?;
+        let mut cred = sqlx::query_as::<_, LoginCredential>("SELECT * FROM castgc WHERE key = ?")
+            .bind(session_id)
+            .fetch_one(&*connection)
+            .await
+            .ok()?;
+        cred.last_access = chrono::Local::now().naive_local();
 
-        // Some(Box::new(cred))
+        Some(Box::new(cred))
     }
 
     async fn create_authenticated_client(
@@ -95,6 +96,7 @@ pub struct Session {
     db: Arc<Mutex<SqlitePool>>,
     id: String,
     client: reqwest::Client,
+    #[derivative(Debug = "ignore")]
     captcha: DynamicImage,
     context: HashMap<String, String>,
 }
@@ -167,15 +169,16 @@ impl LoginSession for Session {
             .map_err(|_| anyhow!("Got invalid credential when saving to db, downcasting failed"))?;
         let db_key = cred.key.clone();
 
-        todo!()
-        // let mut connection = self.db.lock().await;
-        // let connection_ref: &mut SqliteConnection = &mut *connection;
+        let connection = self.db.lock().await;
+        let _inserted =
+            sqlx::query("INSERT INTO castgc (key, value, last_access) VALUES ($1, $2, $3)")
+                .bind(&db_key)
+                .bind(cred.value)
+                .bind(cred.last_access)
+                .execute(&*connection)
+                .await?;
 
-        // let _inserted = diesel::insert_into(super::db_schema::castgc::dsl::castgc)
-        //     .values(*cred)
-        //     .execute(connection_ref)?;
-
-        // Ok(db_key)
+        Ok(db_key)
     }
 }
 

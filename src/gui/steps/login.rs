@@ -1,4 +1,5 @@
 use std::io::Cursor;
+use std::sync::Arc;
 
 use crate::gui::utils::to_blob_url;
 
@@ -133,17 +134,13 @@ async fn get_captcha() -> Result<Vec<u8>> {
     Ok(png_bytes)
 }
 
-#[post("/api/login", mut session: LoginProcess)]
+#[post("/api/login", session: LoginProcess)]
 async fn login_for_session(
     username: String,
     password: String,
     captcha_answer: String,
 ) -> Result<String> {
-    session.login(username, password, captcha_answer).await?;
-
-    let LoginProcess::Finished { cred_db_key, .. } = session else {
-        bail!("Login didn't finish");
-    };
+    let cred_db_key = session.login(username, password, captcha_answer).await?;
 
     Ok(cred_db_key)
 

@@ -3,6 +3,7 @@ use super::super::utils::{ButtonWithLoading, ClientState, Hero};
 use dioxus::fullstack::extract::FromRequestParts;
 use dioxus::prelude::*;
 use std::ops::Not;
+use std::sync::Arc;
 use tracing::{debug, info};
 use urlencoding::encode as url_encode;
 
@@ -98,7 +99,7 @@ pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
         .collect())
 }
 
-#[post("/api/set_school", mut session: LoginProcess)]
+#[post("/api/set_school", session: LoginProcess)]
 pub async fn set_school(name: String) -> Result<()> {
     session.select_school(name).await?;
 

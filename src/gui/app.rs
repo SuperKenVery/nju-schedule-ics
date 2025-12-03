@@ -27,9 +27,10 @@ pub fn App() -> Element {
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
-        document::Link { rel: "stylesheet", href: TAILWIND }
-        document::Link { rel: "stylesheet", href: RAINBOW_SHADOW }
+
+        document::Stylesheet { href: MAIN_CSS }
+        document::Stylesheet { href: TAILWIND }
+        document::Stylesheet { href: RAINBOW_SHADOW }
 
         // div {
         //     h2 { "Debug variable display" }

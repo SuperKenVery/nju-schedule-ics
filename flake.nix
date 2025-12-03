@@ -24,10 +24,6 @@
           })
       );
 
-    # rustToolchain = eachSystem (pkgs: (pkgs.rust-bin.selectLatestStableWith (t: t.default)).override {
-    #   extensions = ["rust-src" "rust-analyzer"];
-    #   targets = ["wasm32-unknown-unknown"];
-    # });
     rustToolchain = eachSystem (pkgs: pkgs.rust-bin.stable.latest.default.override {
       extensions = ["rust-src" "rust-analyzer"];
       targets = ["wasm32-unknown-unknown"];
@@ -37,8 +33,6 @@
       postPatch = ''
         rm Cargo.lock
         cp ${./Dioxus.lock} Cargo.lock
-        substituteInPlace $cargoDepsCopy/wasm-opt-sys-*/build.rs \
-              --replace-fail 'check_cxx17_support()?;' '// check_cxx17_support()?;'
       '';
 
       cargoDeps = pkgs.rustPlatform.importCargoLock {
@@ -56,7 +50,7 @@
     wasm-bindgen-cli = eachSystem (pkgs: (pkgs.buildWasmBindgenCli rec {
       src = pkgs.fetchCrate {
         pname = "wasm-bindgen-cli";
-        version = wasmBindgen.${pkgs.system}.version;
+        version = wasmBindgen.${pkgs.stdenv.hostPlatform.system}.version;
         hash = "sha256-9kW+a7IreBcZ3dlUdsXjTKnclVW1C1TocYfY8gUgewE=";
       };
       cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
@@ -79,11 +73,10 @@
         ];
 
         buildInputs = [
-          rustToolchain.${pkgs.system}
+          rustToolchain.${pkgs.stdenv.hostPlatform.system}
           cargo
-          diesel-cli
-          dioxus-cli.${pkgs.system}
-          wasm-bindgen-cli.${pkgs.system}
+          dioxus-cli.${pkgs.stdenv.hostPlatform.system}
+          wasm-bindgen-cli.${pkgs.stdenv.hostPlatform.system}
           nodejs
         ] ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
@@ -95,7 +88,7 @@
         ]));
 
         # RUST_SRC_PATH = "${
-        #   rustToolchain.${pkgs.system}.rust-src
+        #   rustToolchain.${pkgs.stdenv.hostPlatform.system}.rust-src
         # }/lib/rustlib/src/rust/library";
         RUST_BACKTRACE = "1";
         RUST_LOG = "warn,nju_schedule_ics=debug";

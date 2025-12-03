@@ -3973,6 +3973,7 @@ version = "0.30.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]
@@ -6064,6 +6065,7 @@ checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -6084,6 +6086,8 @@ dependencies = [
  "sha2",
  "smallvec",
  "thiserror 2.0.16",
+ "tokio",
+ "tokio-stream",
  "tracing",
  "url",
 ]
@@ -6122,6 +6126,7 @@ dependencies = [
  "sqlx-postgres",
  "sqlx-sqlite",
  "syn 2.0.106",
+ "tokio",
  "url",
 ]
 
@@ -6136,6 +6141,7 @@ dependencies = [
  "bitflags 2.9.4",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "digest",
  "dotenvy",
@@ -6177,6 +6183,7 @@ dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.4",
  "byteorder",
+ "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -6211,6 +6218,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2d12fe70b2c1b4401038055f90f151b78208de1f9f89a7dbfd41587a10c3eea"
 dependencies = [
  "atoi",
+ "chrono",
  "flume",
  "futures-channel",
  "futures-core",

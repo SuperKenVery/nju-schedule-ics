@@ -1,7 +1,9 @@
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
+use axum::Extension;
 use axum::extract::FromRequestParts;
+use axum::http::HeaderValue;
 use axum::{body::Body, extract::Request, response::Response};
 use derivative::Derivative;
 use dioxus::server::ServerFnError;
@@ -25,32 +27,41 @@ use crate::server::state::ServerState;
 /// - After that, we associate the session ID with a [`Credentials`], storing that in DB.
 /// - Now this session is done, and is removed from the HashMap in LoginProcessManager.
 #[derive(Derivative)]
-#[derivative(Debug, Clone)]
-pub enum LoginProcess {
+#[derivative(Debug)]
+pub enum LoginProcessInner {
     Started {
         school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
     },
     SelectedSchool {
         school: Arc<dyn School>,
-        session: Arc<dyn LoginSession>,
+        session: Box<dyn LoginSession>,
     },
     Finished {
         school: Arc<dyn School>,
         #[derivative(Debug = "ignore")]
-        credentials: Arc<dyn Credentials>,
+        credentials: Box<dyn Credentials>,
         cred_db_key: String,
     },
+}
+
+#[derive(Derivative)]
+#[derivative(Debug, Clone)]
+pub struct LoginProcess {
+    inner: Arc<Mutex<LoginProcessInner>>,
 }
 
 impl LoginProcess {
     /// Start a new session
     pub fn start(school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>) -> Self {
-        Self::Started { school_adapters }
+        Self {
+            inner: Arc::new(Mutex::new(LoginProcessInner::Started { school_adapters })),
+        }
     }
 
     /// Set the school adapter for this session
-    pub async fn select_school(&mut self, school_name: String) -> Result<()> {
-        let Self::Started { school_adapters } = self else {
+    pub async fn select_school(&self, school_name: String) -> Result<()> {
+        let mut inner = self.inner.lock().await;
+        let LoginProcessInner::Started { school_adapters } = &*inner else {
             bail!("Cannot select school: Not in started state")
         };
         let school = school_adapters
@@ -64,43 +75,46 @@ impl LoginProcess {
             .new_login_session()
             .await
             .context("Creating new login session for school")?;
-        *self = Self::SelectedSchool {
+        *inner = LoginProcessInner::SelectedSchool {
             school,
             session: login_session.into(),
         };
+        tracing::info!("Server side selected school: {school_name}");
 
         Ok(())
     }
 
     /// Get the captcha image content
-    pub async fn get_captcha(&self) -> Result<&DynamicImage> {
-        let Self::SelectedSchool { session, .. } = self else {
-            bail!("Not in SelectedSchool when calling `get_captcha`");
+    pub async fn get_captcha(&self) -> Result<DynamicImage> {
+        let inner = self.inner.lock().await;
+        let LoginProcessInner::SelectedSchool { session, .. } = &*inner else {
+            bail!("Not in SelectedSchool when calling `get_captcha`. Session: {self:#?}");
         };
 
-        Ok(session.get_captcha())
+        Ok(session.get_captcha().clone())
     }
 
     pub async fn login(
-        &mut self,
+        &self,
         username: String,
         password: String,
         captcha_answer: String,
-    ) -> Result<()> {
-        let Self::SelectedSchool { school, session } = self else {
+    ) -> Result<String> {
+        let mut inner = self.inner.lock().await;
+        let LoginProcessInner::SelectedSchool { school, session } = &*inner else {
             bail!("Not in SelectedSchool when calling `login`");
         };
 
         let cred = session.login(username, password, captcha_answer).await?;
         let cred_db_key = session.save_cred_to_db(cred.clone()).await?;
 
-        *self = Self::Finished {
+        *inner = LoginProcessInner::Finished {
             school: school.clone(),
             credentials: cred.into(),
-            cred_db_key,
+            cred_db_key: cred_db_key.clone(),
         };
 
-        Ok(())
+        Ok(cred_db_key)
     }
 }
 
@@ -124,7 +138,18 @@ impl<S> FromRequestParts<S> for LoginProcess {
 // === Layer ===
 // Use when setting up routes
 
-pub struct LoginProcessManagerLayer {}
+#[derive(Clone, Debug)]
+pub struct LoginProcessManagerLayer {
+    all_processes: Arc<std::sync::Mutex<HashMap<String, LoginProcess>>>,
+}
+
+impl LoginProcessManagerLayer {
+    pub fn new() -> Self {
+        LoginProcessManagerLayer {
+            all_processes: Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
+}
 
 impl<S> Layer<S> for LoginProcessManagerLayer {
     type Service = LoginProcessManager<S>;
@@ -132,16 +157,17 @@ impl<S> Layer<S> for LoginProcessManagerLayer {
     fn layer(&self, inner: S) -> Self::Service {
         LoginProcessManager {
             inner,
-            all_processes: HashMap::new(),
+            all_processes: self.all_processes.clone(),
         }
     }
 }
 
 // === Middleware ===
 
-struct LoginProcessManager<S> {
+#[derive(Clone, Debug)]
+pub struct LoginProcessManager<S> {
     inner: S,
-    all_processes: HashMap<String, LoginProcess>,
+    all_processes: Arc<std::sync::Mutex<HashMap<String, LoginProcess>>>,
 }
 
 impl<S> Service<Request> for LoginProcessManager<S>
@@ -167,12 +193,13 @@ where
             .get::<Cookies>()
             .expect("Cannot get cookies. Is `CookieManagerLayer` configured?");
         let session_id = cookies.get(COOKIE_KEY);
+        let mut all_progresses = self.all_processes.lock().unwrap();
 
-        let (set_cookie, process) = if let Some(session_id) = session_id
-            && let Some(process) = self.all_processes.get(session_id.to_string().as_str())
+        let (set_cookie, process) = if let Some(session_id) = &session_id
+            && let Some(progress) = all_progresses.get(session_id.value())
         {
             // Session found, insert into extensions
-            (None, process.clone())
+            (None, progress.clone())
         } else {
             // Session invalid or not found, create a new session and insert into extensions
             let server_state = request
@@ -181,10 +208,17 @@ where
                 .expect("ServerState not found in extensions");
             let school_adapters = server_state.school_adapters.clone();
             let new_session_id = Uuid::new_v4().to_string();
-            let new_process = LoginProcess::Started { school_adapters };
+            let new_process = LoginProcess::start(school_adapters);
 
-            self.all_processes
-                .insert(new_session_id.clone(), new_process.clone());
+            if let Some(invalid_session) = session_id {
+                // Session invalid
+                let invalid_session = invalid_session.value();
+                tracing::warn!(
+                    "Got invalid session_id {invalid_session} from client, assigning new one {new_session_id}"
+                );
+            }
+
+            all_progresses.insert(new_session_id.clone(), new_process.clone());
 
             (Some(new_session_id), new_process)
         };
@@ -201,11 +235,14 @@ where
 
             match set_cookie {
                 Some(new_session_id) => {
-                    let cookies = response
-                        .extensions_mut()
-                        .get_mut::<Cookies>()
-                        .expect("ServerState not found in extensions");
-                    cookies.add(Cookie::new(COOKIE_KEY, new_session_id));
+                    response.headers_mut().insert(
+                        "Set-Cookie",
+                        HeaderValue::from_str(&format!(
+                            "{}={}; Secure; HttpOnly; SameSite=Strict;",
+                            COOKIE_KEY, new_session_id
+                        ))
+                        .expect("Invalid Set-Cookie value"),
+                    );
                 }
                 None => {}
             }
