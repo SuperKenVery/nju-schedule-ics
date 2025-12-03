@@ -4,7 +4,6 @@ use crate::gui::app::App;
 use crate::server::config::Config;
 use anyhow::Result;
 use axum::Extension;
-use dioxus::prelude::*;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{Sqlite, SqlitePool};
 use tower_cookies::CookieManagerLayer;

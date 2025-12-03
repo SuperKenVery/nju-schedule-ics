@@ -27,9 +27,9 @@ pub struct Cxjcs {
 
 #[derive(Deserialize)]
 pub struct Semester {
-    /// Semester year e.g. 	"2025-2026"
+    /// Semester year e.g. "2025-2026"
     pub XN: String,
-    /// Semester half e.g. 	"1" for first half
+    /// Semester half e.g. "1" for first half
     pub XQ: String,
     /// Semester start date e.g. "2025-08-25 00:00:00"
     pub XQKSRQ: String,

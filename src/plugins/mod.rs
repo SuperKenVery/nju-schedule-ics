@@ -12,7 +12,7 @@ pub trait PlugIn: Sync + Send + Debug {
     /// After school adapter has got all the courses, before creating the calendar file.
     fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
-        school: &'a dyn School,
+        _school: &'a dyn School,
         courses: Vec<Course>,
     ) -> Vec<Course>
     where

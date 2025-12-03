@@ -1,11 +1,6 @@
 use anyhow::anyhow;
 use dioxus::prelude::*;
 use js_sys::{Array, Uint8Array};
-use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{Debug, Display},
-    str::FromStr,
-};
 use web_sys::{Blob, Url};
 
 // === Utility Components ===

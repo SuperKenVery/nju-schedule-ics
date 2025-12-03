@@ -1,7 +1,5 @@
 use super::interfaces;
-use crate::adapters::{
-    course::Course, course::GeoLocation,
-};
+use crate::adapters::{course::Course, course::GeoLocation};
 use anyhow::{Result, anyhow, bail};
 use chrono::{NaiveDate, Utc};
 use reqwest_middleware::ClientWithMiddleware;
@@ -16,7 +14,7 @@ pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
         .cxxszhxqkb
         .rows
         .into_iter()
-        .map(|course_json| course_json.to_course(&semester_start))
+        .map(|course_json| course_json.into_course(&semester_start))
         .collect())
 }
 
@@ -60,7 +58,7 @@ async fn get_semester_start(
 }
 
 impl interfaces::courses::Course {
-    pub fn to_course(self, semester_start: &chrono::NaiveDate) -> Course {
+    pub fn into_course(self, semester_start: &chrono::NaiveDate) -> Course {
         let time = self.get_time();
         let all_course_times = match time {
             Some((start, end)) => self
