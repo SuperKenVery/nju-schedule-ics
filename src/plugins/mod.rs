@@ -18,7 +18,7 @@ pub trait PlugIn: Sync + Send + Debug {
     where
         'b: 'c,
     {
-        return courses;
+        courses
     }
 }
 
@@ -35,7 +35,7 @@ impl PlugIn for Vec<Arc<dyn PlugIn>> {
         for plugin in self {
             result = plugin.pre_generate_calendar(school, result);
         }
-        return result;
+        result
     }
 }
 

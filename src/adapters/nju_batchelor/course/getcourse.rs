@@ -1,10 +1,9 @@
 use super::interfaces;
 use crate::adapters::{
-    course::Course, course::GeoLocation, nju_batchelor::course::interfaces::all_semesters,
+    course::Course, course::GeoLocation,
 };
 use anyhow::{Result, anyhow, bail};
 use chrono::{NaiveDate, Utc};
-use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
 
 pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
@@ -154,7 +153,7 @@ impl interfaces::courses::Course {
             .enumerate()
             .filter_map(|(idx, have_course)| {
                 if have_course == '1' {
-                    Some(semester_start.clone() + week * (idx as i32) + day * (self.SKXQ - 1))
+                    Some(*semester_start + week * (idx as i32) + day * (self.SKXQ - 1))
                 } else {
                     None
                 }

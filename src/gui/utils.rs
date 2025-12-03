@@ -90,7 +90,7 @@ pub fn ButtonWithLoading(
 // === JS Utils ===
 
 pub fn to_blob_url(data: &[u8]) -> anyhow::Result<String> {
-    let u8_array = Uint8Array::from(&data[..]);
+    let u8_array = Uint8Array::from(data);
     let array = Array::new();
     array.push(&u8_array);
     let blob = Blob::new_with_u8_array_sequence(&array).map_err(|e| anyhow!("{:?}", e))?;

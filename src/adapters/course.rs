@@ -62,7 +62,7 @@ impl GeoLocation {
 
 const TIME_FMT: &str = "%Y%m%dT%H%M%S";
 impl Course {
-    pub fn to_events<'a, 'b>(&self, school: &dyn School, tzid: &'b str) -> Result<Vec<Event<'a>>> {
+    pub fn to_events<'a>(&self, school: &dyn School, tzid: &str) -> Result<Vec<Event<'a>>> {
         Ok(self
             .time
             .iter()

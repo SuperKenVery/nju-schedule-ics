@@ -1,10 +1,9 @@
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
-use axum::Extension;
 use axum::extract::FromRequestParts;
 use axum::http::HeaderValue;
-use axum::{body::Body, extract::Request, response::Response};
+use axum::{extract::Request, response::Response};
 use derivative::Derivative;
 use dioxus::server::ServerFnError;
 use futures_util::future::BoxFuture;
@@ -14,7 +13,6 @@ use std::sync::Arc;
 use std::task::{Context as TaskContext, Poll};
 use tokio::sync::Mutex;
 use tower::{Layer, Service};
-use tower_cookies::Cookie;
 use tower_cookies::Cookies;
 use uuid::Uuid;
 
@@ -77,7 +75,7 @@ impl LoginProcess {
             .context("Creating new login session for school")?;
         *inner = LoginProcessInner::SelectedSchool {
             school,
-            session: login_session.into(),
+            session: login_session,
         };
         tracing::info!("Server side selected school: {school_name}");
 
@@ -110,7 +108,7 @@ impl LoginProcess {
 
         *inner = LoginProcessInner::Finished {
             school: school.clone(),
-            credentials: cred.into(),
+            credentials: cred,
             cred_db_key: cred_db_key.clone(),
         };
 
@@ -120,9 +118,9 @@ impl LoginProcess {
     pub async fn cred_db_key(&self) -> Option<String> {
         let inner = self.inner.lock().await;
         if let LoginProcessInner::Finished { cred_db_key, .. } = &*inner {
-            return Some(cred_db_key.clone());
+            Some(cred_db_key.clone())
         } else {
-            return None;
+            None
         }
     }
 
@@ -162,6 +160,12 @@ impl<S> FromRequestParts<S> for LoginProcess {
 #[derive(Clone, Debug)]
 pub struct LoginProcessManagerLayer {
     all_processes: Arc<std::sync::Mutex<HashMap<String, LoginProcess>>>,
+}
+
+impl Default for LoginProcessManagerLayer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LoginProcessManagerLayer {
@@ -206,7 +210,7 @@ where
     }
 
     fn call(&mut self, mut request: Request) -> Self::Future {
-        const COOKIE_KEY: &'static str = "session_id";
+        const COOKIE_KEY: &str = "session_id";
 
         // Incoming request
         let cookies = request
@@ -254,18 +258,15 @@ where
         Box::pin(async move {
             let mut response: Response = future.await?;
 
-            match set_cookie {
-                Some(new_session_id) => {
-                    response.headers_mut().insert(
-                        "Set-Cookie",
-                        HeaderValue::from_str(&format!(
-                            "{}={}; Secure; HttpOnly; SameSite=Strict;",
-                            COOKIE_KEY, new_session_id
-                        ))
-                        .expect("Invalid Set-Cookie value"),
-                    );
-                }
-                None => {}
+            if let Some(new_session_id) = set_cookie {
+                response.headers_mut().insert(
+                    "Set-Cookie",
+                    HeaderValue::from_str(&format!(
+                        "{}={}; Secure; HttpOnly; SameSite=Strict;",
+                        COOKIE_KEY, new_session_id
+                    ))
+                    .expect("Invalid Set-Cookie value"),
+                );
             }
             Ok(response)
         })

@@ -3,13 +3,10 @@ use crate::adapters::traits::CalendarHelper;
 use sqlx::SqlitePool;
 mod login;
 use crate::adapters::traits::School;
-use anyhow::Result;
 use async_trait::async_trait;
 use derivative::Derivative;
-use ics::{Standard, TimeZone};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::info;
 
 #[derive(Derivative)]
 #[derivative(Debug)]

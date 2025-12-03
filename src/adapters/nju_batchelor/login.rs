@@ -1,6 +1,5 @@
 use super::NJUBatchelorAdaptor;
 
-use crate::adapters::nju_batchelor::login;
 use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
     Aes128,
@@ -15,22 +14,17 @@ use image::{DynamicImage, ImageReader};
 use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
-use skyscraper::html::{self, HtmlDocument};
-use skyscraper::xpath::xpath_item_set::XpathItemSet;
+use skyscraper::html::{self};
 use skyscraper::xpath::{
     self, XpathItemTree,
-    grammar::{
-        XpathItemTreeNodeData,
-        data_model::{Node, XpathItem},
-    },
+    grammar::data_model::XpathItem,
 };
 use sqlx::prelude::FromRow;
-use sqlx::{SqlitePool, sqlite};
-use std::error::Error;
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
-use tracing::{debug, info};
+use tracing::info;
 use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
@@ -245,9 +239,9 @@ fn encrypt(password: &str, salt: &str) -> String {
 
     let ct =
         cipher.encrypt_padded_vec_mut::<Pkcs7>(("a".repeat(64) + password).into_bytes().as_slice());
-    let b64 = general_purpose::STANDARD.encode(ct);
+    
 
-    b64
+    general_purpose::STANDARD.encode(ct)
 }
 
 /// Build the network client with appropriate headers needed for login page
@@ -302,11 +296,11 @@ impl ToXpathTree for String {
 }
 
 trait XpathExt {
-    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem>>;
+    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem<'_>>>;
 }
 
 impl XpathExt for XpathItemTree {
-    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem>> {
+    fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem<'_>>> {
         let xpath_query = xpath::parse(query)?;
         let item_set = xpath_query.apply(self)?;
         Ok(item_set.into_iter().collect())

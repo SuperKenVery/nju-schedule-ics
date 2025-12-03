@@ -1,12 +1,9 @@
 use super::course::Course;
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use downcast_rs::{Downcast, impl_downcast};
 use dyn_clone::DynClone;
-use ics::TimeZone;
 use image::DynamicImage;
-use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
 use sqlx::SqlitePool;
 use std::{fmt::Debug, sync::Arc};
