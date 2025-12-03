@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use daisy_rsx::marketing::customer_logos::Customers;
 use dioxus::prelude::*;
 use js_sys::{Array, Uint8Array};
 use serde::{Deserialize, Serialize};
@@ -7,7 +6,6 @@ use std::{
     fmt::{Debug, Display},
     str::FromStr,
 };
-use tracing::error;
 use web_sys::{Blob, Url};
 
 // === Utility Components ===
