@@ -8,9 +8,9 @@ use ics::TimeZone;
 use image::DynamicImage;
 use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
+use sqlx::SqlitePool;
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::Mutex;
-use tower_sessions_sqlx_store::sqlx::SqlitePool;
 
 /// An adapter for a school API.
 ///

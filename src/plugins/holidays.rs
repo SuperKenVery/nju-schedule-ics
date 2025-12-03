@@ -1,12 +1,14 @@
 //! 调休插件
 
-use std::collections::{HashMap, HashSet};
-
 use crate::adapters::{course::Course, traits::School};
 use crate::plugins::PlugIn;
+use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, NaiveDate, Utc};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct HolidayPlugin {
@@ -14,14 +16,31 @@ pub struct HolidayPlugin {
     compensate_days: HashSet<NaiveDate>,
 }
 
+fn build_client() -> Result<ClientWithMiddleware> {
+    let client = reqwest_middleware::ClientBuilder::new(
+        reqwest::ClientBuilder::new()
+            .user_agent("nju-schedule-ics")
+            .timeout(std::time::Duration::from_secs(10))
+            .build()?,
+    )
+    .with(RetryTransientMiddleware::new_with_policy(
+        ExponentialBackoff::builder().build_with_max_retries(3),
+    ))
+    .build();
+
+    Ok(client)
+}
+
 impl HolidayPlugin {
     pub async fn new() -> Result<Self> {
-        let holidays = reqwest::get(
-            "https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json",
-        )
-        .await?
-        .json::<ShuyzHolidayResponse>()
-        .await?;
+        let client = build_client()?;
+        let holidays = client
+            .get("https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json")
+            .send()
+            .await
+            .context("Failed to fetch holiday info")?
+            .json::<ShuyzHolidayResponse>()
+            .await?;
 
         let mut holiday_dates = HashSet::new();
         let mut compensate_dates = HashSet::new();

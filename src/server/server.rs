@@ -6,38 +6,32 @@ use crate::server::config::Config;
 use anyhow::Result;
 use axum::Extension;
 use dioxus::prelude::*;
+use sqlx::migrate::MigrateDatabase;
+use sqlx::{Sqlite, SqlitePool};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use tower_cookies::CookieManagerLayer;
 use tracing::debug;
 
 pub fn server_start() -> Result<()> {
-    use dioxus::server::axum::routing::{get, post};
     debug!("Current server working dir: {:?}", std::env::current_dir());
     dioxus_logger::initialize_default();
 
-    tokio::runtime::Runtime::new()
-        .unwrap()
-        .block_on(async move {
-            let config = Config::from_default()?;
-            let db = SqlitePool::connect(config.db_path.as_str()).await?;
+    dioxus::serve(|| async move {
+        let config = Config::from_default()?;
 
-            let session_store = SqliteStore::new(db);
-            let state = ServerState::from_config(config, db.clone()).await?;
+        if !Sqlite::database_exists(&config.db_path).await? {
+            Sqlite::create_database(&config.db_path).await?;
+        }
+        let db = SqlitePool::connect(config.db_path.as_str()).await?;
 
-            let session_layer = LoginProcessManagerLayer {};
+        let state = ServerState::from_config(config, db.clone()).await?;
 
-            dioxus::serve(|| {
-                let session_layer = session_layer.clone();
-                let state = state.clone();
+        let router = dioxus::server::router(App)
+            .layer(LoginProcessManagerLayer::new())
+            .layer(CookieManagerLayer::new())
+            .layer(Extension(state));
 
-                async move {
-                    let router = dioxus::server::router(App)
-                        .layer(session_layer.clone())
-                        // .with_state(state);
-                        .layer(Extension(state.clone()));
-
-                    Ok(router)
-                }
-            });
-        })
+        Ok(router)
+    });
 }

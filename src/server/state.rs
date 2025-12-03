@@ -10,11 +10,11 @@ use dioxus::fullstack::extract::{FromRequest, FromRequestParts};
 use dioxus::html::u::part;
 use dioxus::prelude::*;
 use image::DynamicImage;
+use sqlx::SqlitePool;
 use sqlx::prelude::FromRow;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tower_sessions_sqlx_store::{SqliteStore, sqlx::SqlitePool};
 
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]

@@ -24,6 +24,20 @@ impl School for NJUBatchelorAdaptor {
     where
         Self: Sized,
     {
+        {
+            let database = db.lock().await;
+            let _res = sqlx::query(
+                "CREATE TABLE IF NOT EXISTS castgc (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    last_access TEXT NOT NULL
+                )",
+            )
+            .execute(&*database)
+            .await
+            .expect("Failed to ensure table exists");
+        }
+
         Self { connection: db }
     }
 
