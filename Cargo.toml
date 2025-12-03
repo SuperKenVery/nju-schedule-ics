@@ -53,6 +53,7 @@ axum = { version = "0.8.7", optional = true }
 tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
+dioxus-sdk-storage = "0.7.0"
 
 [features]
 default = []

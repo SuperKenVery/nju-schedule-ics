@@ -1,7 +1,8 @@
 use super::super::app::Route;
-use super::super::utils::{ButtonWithLoading, ClientState, Hero};
+use super::super::utils::{ButtonWithLoading, Hero};
 use daisy_rsx::{Card, CardBody};
 use dioxus::prelude::*;
+use dioxus_sdk_storage::use_persistent;
 use std::ops::Not;
 use std::string;
 use tracing::{debug, info};
@@ -9,22 +10,17 @@ use urlencoding::encode as url_encode;
 
 #[component]
 pub fn ViewLink() -> Element {
-    let client_state = use_context::<Signal<ClientState>>();
     let prefix = use_server_future(get_subscription_link_prefix)?;
-    let subscription_url = match (
-        prefix(),
-        client_state().school_adapter_api,
-        client_state().db_key,
-    ) {
-        (Some(Ok(prefix)), Some(adapter_api), Some(key)) => {
-            format!(
-                "{}/calendar/{}/{}/schedule.ics",
-                prefix.replace("https", "webcal"),
-                url_encode(adapter_api.as_str()),
-                key
-            )
-        }
-        _ => "登陆状态异常，无法获取订阅链接".to_string(),
+    let db_key = use_server_future(get_subscription_key)?;
+    let school = use_server_future(get_selected_school_name)?;
+    let subscription_url = match (prefix(), school(), db_key()) {
+        (Some(Ok(prefix)), Some(Ok(adapter_api)), Some(Ok(key))) => Ok(format!(
+            "{}/calendar/{}/{}/schedule.ics",
+            prefix.replace("https", "webcal"),
+            url_encode(adapter_api.as_str()),
+            key
+        )),
+        _ => Err("登陆状态异常，无法获取订阅链接".to_string()),
     };
 
     rsx! {
@@ -39,11 +35,27 @@ pub fn ViewLink() -> Element {
 
                     h2 { class: "card-title", "订阅成功" }
                     p { "您的订阅链接为：" }
-                    Link {
-                        class: "link-success",
-                        to: subscription_url.clone(),
-                        { subscription_url.clone() }
+
+                    match subscription_url.clone() {
+                        Ok(url) => {
+                            tracing::debug!("Showing subscription link");
+                            rsx!{
+                            Link {
+                                class: "link-success break-all",
+                                to: url.clone(),
+                                { url.clone() }
+                            }
+                        }},
+                        Err(msg) => {
+                            rsx!{
+                            Link {
+                                class: "link-error break-all",
+                                to: "",
+                                { msg.clone() }
+                            }
+                        }}
                     }
+
 
                     Howto {
                         title: "苹果平台（iOS/macOS）",
@@ -89,7 +101,7 @@ fn Howto(title: String, children: Element) -> Element {
 }
 
 #[cfg(feature = "server")]
-use crate::server::state::ServerState;
+use crate::{adapters::login_process::LoginProcess, server::state::ServerState};
 
 /// Get the protocol and host part of subscription link,
 /// without trailing slash.
@@ -97,4 +109,20 @@ use crate::server::state::ServerState;
 async fn get_subscription_link_prefix() -> Result<String> {
     let site_url = &state.site_url;
     Ok(site_url.clone())
+}
+
+#[get("/api/subscription_key", session: LoginProcess)]
+async fn get_subscription_key() -> Result<String> {
+    Ok(session
+        .cred_db_key()
+        .await
+        .context("Failed to get subscription link key")?)
+}
+
+#[get("/api/selected_school_name", session: LoginProcess)]
+async fn get_selected_school_name() -> Result<String> {
+    Ok(session
+        .selected_school_adapter_name()
+        .await
+        .context("No selected school yet")?)
 }

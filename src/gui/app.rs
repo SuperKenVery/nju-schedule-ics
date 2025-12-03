@@ -1,9 +1,11 @@
-use crate::gui::utils::ClientState;
-
 use super::steps::login::Login;
 use super::steps::select_school::SchoolAPISelect;
 use super::steps::view_link::ViewLink;
 use dioxus::prelude::*;
+use dioxus_sdk_storage::{
+    LocalStorage, StorageEntryTrait, new_persistent, new_storage_entry, new_synced_storage,
+    use_persistent, use_synced_storage,
+};
 use tracing::info;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -23,8 +25,6 @@ pub(super) enum Route {
 
 #[component]
 pub fn App() -> Element {
-    let _client_state = use_context_provider(|| Signal::new(ClientState::default()));
-
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
 

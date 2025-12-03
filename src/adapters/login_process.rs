@@ -28,7 +28,7 @@ use crate::server::state::ServerState;
 /// - Now this session is done, and is removed from the HashMap in LoginProcessManager.
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub enum LoginProcessInner {
+enum LoginProcessInner {
     Started {
         school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
     },
@@ -102,7 +102,7 @@ impl LoginProcess {
     ) -> Result<String> {
         let mut inner = self.inner.lock().await;
         let LoginProcessInner::SelectedSchool { school, session } = &*inner else {
-            bail!("Not in SelectedSchool when calling `login`");
+            bail!("Not in SelectedSchool when calling `login`: {inner:?}");
         };
 
         let cred = session.login(username, password, captcha_answer).await?;
@@ -115,6 +115,27 @@ impl LoginProcess {
         };
 
         Ok(cred_db_key)
+    }
+
+    pub async fn cred_db_key(&self) -> Option<String> {
+        let inner = self.inner.lock().await;
+        if let LoginProcessInner::Finished { cred_db_key, .. } = &*inner {
+            return Some(cred_db_key.clone());
+        } else {
+            return None;
+        }
+    }
+
+    pub async fn selected_school_adapter_name(&self) -> Option<String> {
+        let inner = self.inner.lock().await;
+
+        match &*inner {
+            LoginProcessInner::Started { .. } => None,
+            LoginProcessInner::SelectedSchool { school, .. } => {
+                Some(school.adapter_name().to_string())
+            }
+            LoginProcessInner::Finished { school, .. } => Some(school.adapter_name().to_string()),
+        }
     }
 }
 
