@@ -89,18 +89,6 @@ pub fn ButtonWithLoading(
     }
 }
 
-// === Client State ===
-
-/// The global app state for web page.
-#[derive(Clone, Default)]
-pub struct ClientState {
-    /// The key for login credentials.
-    /// Points to a record in server database. Only exists after logging in.
-    pub db_key: Option<String>,
-    /// The school adapter api selected for this session
-    pub school_adapter_api: Option<String>,
-}
-
 // === JS Utils ===
 
 pub fn to_blob_url(data: &[u8]) -> anyhow::Result<String> {

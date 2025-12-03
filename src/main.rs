@@ -8,8 +8,6 @@ use nju_schedule_ics::gui;
 use nju_schedule_ics::server::server;
 
 fn main() -> Result<()> {
-    dioxus::logger::initialize_default();
-
     #[cfg(feature = "server")]
     server::server_start()?;
 

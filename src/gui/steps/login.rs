@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::gui::utils::to_blob_url;
 
 use super::super::app::Route;
-use super::super::utils::{ButtonWithLoading, Centered, ClientState, Hero};
+use super::super::utils::{ButtonWithLoading, Centered, Hero};
 use anyhow::{Context, Result, anyhow, bail};
 use daisy_rsx::Button;
 use derivative::Derivative;
@@ -17,16 +17,15 @@ pub fn Login() -> Element {
     use js_sys::{Array, Uint8Array};
     use web_sys::{Blob, Url};
 
-    let mut client_state = use_context::<Signal<ClientState>>();
     let img_src = use_resource(move || async move {
         let image = get_captcha().await?;
 
         Ok::<_, anyhow::Error>(to_blob_url(&image)?)
     });
 
-    let mut username = use_signal(|| "".to_string());
-    let mut password = use_signal(|| "".to_string());
-    let mut captcha_answer = use_signal(|| "".to_string());
+    let username = use_signal(|| "".to_string());
+    let password = use_signal(|| "".to_string());
+    let captcha_answer = use_signal(|| "".to_string());
 
     rsx! {
         Hero {
@@ -60,8 +59,7 @@ pub fn Login() -> Element {
                     class: "btn btn-neutral mt-4",
                     type: "submit",
                     onclick: move |event| async move {
-                        let db_key = login_for_session(username(), password(), captcha_answer()).await?;
-                        (*(client_state.write())).db_key = Some(db_key);
+                        let _db_key = login_for_session(username(), password(), captcha_answer()).await?;
 
                         let nav = navigator();
                         nav.push(Route::ViewLink);

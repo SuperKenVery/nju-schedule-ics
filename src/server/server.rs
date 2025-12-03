@@ -15,7 +15,6 @@ use tracing::debug;
 
 pub fn server_start() -> Result<()> {
     debug!("Current server working dir: {:?}", std::env::current_dir());
-    dioxus_logger::initialize_default();
 
     dioxus::serve(|| async move {
         let config = Config::from_default()?;
