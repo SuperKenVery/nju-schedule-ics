@@ -4,7 +4,6 @@
 
 use anyhow::Result;
 use map_macro::hash_map;
-use reqwest::Client;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};

@@ -12,7 +12,7 @@ pub fn Login() -> Element {
     let img_src = use_resource(move || async move {
         let image = get_captcha().await?;
 
-        Ok::<_, anyhow::Error>(to_blob_url(&image)?)
+        to_blob_url(&image)
     });
 
     let username = use_signal(|| "".to_string());

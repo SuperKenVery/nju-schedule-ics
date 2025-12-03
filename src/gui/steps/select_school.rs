@@ -87,7 +87,6 @@ pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
     Ok(school_adapters
         .keys()
         .cloned()
-        .into_iter()
         .map(|s| s.to_string())
         .collect())
 }

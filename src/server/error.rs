@@ -25,7 +25,7 @@ impl IntoResponse for AppError {
             self.error.backtrace()
         );
 
-        let err = format!("错误ID: {}\n错误信息: {}", error_id, self.error.to_string());
+        let err = format!("错误ID: {}\n错误信息: {}", error_id, self.error);
 
         Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)

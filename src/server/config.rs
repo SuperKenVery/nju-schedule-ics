@@ -1,12 +1,8 @@
-use super::error::AppError;
 use anyhow::Result;
-use axum::Router;
 use clap::Parser;
 use serde::Deserialize;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use toml;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 #[derive(Parser, Debug)]
 #[command(author,version,about,long_about=None)]
@@ -22,7 +18,7 @@ pub struct Config {
     pub site_url: String,
 }
 
-const DEFAULT_CFG: &'static str = r#"
+const DEFAULT_CFG: &str = r#"
 # The path to SQLite database
 # which stores cookies
 db_path="./cookies.sqlite"

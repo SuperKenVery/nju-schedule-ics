@@ -1,15 +1,12 @@
 use super::state::ServerState;
 use crate::adapters::login_process::LoginProcessManagerLayer;
 use crate::gui::app::App;
-use crate::server::calendar::get_calendar_file;
 use crate::server::config::Config;
 use anyhow::Result;
 use axum::Extension;
 use dioxus::prelude::*;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{Sqlite, SqlitePool};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::Arc;
 use tower_cookies::CookieManagerLayer;
 use tracing::debug;
 

@@ -1,14 +1,12 @@
-use super::error::AppError;
 use super::state::ServerState;
 use crate::adapters::course::Course;
-use crate::adapters::traits::{CalendarHelper, Login, School};
+use crate::adapters::traits::{Login, School};
 use crate::plugins::PlugIn;
 use anyhow::Context;
 use anyhow::Result;
-use axum::extract::{Path, State};
+use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::IntoResponse;
-use axum_macros::debug_handler;
 use dioxus::fullstack::FromResponse;
 use dioxus::prelude::*;
 use ics::{ICalendar, Standard, TimeZone};

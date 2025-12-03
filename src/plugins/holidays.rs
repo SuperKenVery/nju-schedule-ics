@@ -5,7 +5,7 @@ use crate::plugins::PlugIn;
 use anyhow::Context;
 use anyhow::Result;
 use chrono::{DateTime, NaiveDate, Utc};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
