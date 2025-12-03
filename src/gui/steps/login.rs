@@ -1,22 +1,14 @@
-use std::io::Cursor;
-use std::sync::Arc;
-
 use crate::gui::utils::to_blob_url;
 
 use super::super::app::Route;
-use super::super::utils::{ButtonWithLoading, Centered, Hero};
-use anyhow::{Context, Result, anyhow, bail};
-use daisy_rsx::Button;
-use derivative::Derivative;
-use dioxus::{html::textarea::placeholder, prelude::*};
-use image::DynamicImage;
+use super::super::utils::{ButtonWithLoading, Hero};
+use anyhow::Result;
+use dioxus::prelude::*;
+use std::io::Cursor;
 use tracing::info;
 
 #[component]
 pub fn Login() -> Element {
-    use js_sys::{Array, Uint8Array};
-    use web_sys::{Blob, Url};
-
     let img_src = use_resource(move || async move {
         let image = get_captcha().await?;
 

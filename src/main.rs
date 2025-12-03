@@ -1,5 +1,4 @@
 use anyhow::Result;
-use tracing::error;
 
 #[cfg(feature = "web")]
 use nju_schedule_ics::gui;

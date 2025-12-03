@@ -1,12 +1,7 @@
 use super::super::app::Route;
 use super::super::utils::{ButtonWithLoading, Hero};
-use dioxus::fullstack::extract::FromRequestParts;
 use dioxus::prelude::*;
-use dioxus_sdk_storage::use_persistent;
-use std::ops::Not;
-use std::sync::Arc;
-use tracing::{debug, info};
-use urlencoding::encode as url_encode;
+use tracing::info;
 
 #[component]
 pub fn SchoolAPISelect() -> Element {
