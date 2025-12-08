@@ -109,20 +109,25 @@
             npx tailwind -o $out/tailwind_output.css
           '';
         commonArgs = rec {
-          src1 = (pkgs.lib.cleanSourceWith {
+          src = (pkgs.lib.cleanSourceWith {
             src = ./.;
-            filter = myFilter;
+            filter = manifestFilter;
             name = "source";
           });
-          src = builtins.trace src1.outPath src1;
+          # src = builtins.trace src1.outPath src1;
 
           nativeBuildInputs = devShells.${system}.default.nativeBuildInputs;
           buildInputs = devShells.${system}.default.buildInputs;
         };
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-        myFilter = path: type:
+        # Keep all source and /assets for building this crate
+        sourceFilter = path: type:
             (craneLib.filterCargoSources path type)
             || (builtins.match ".*assets/.*" path != null);
+        # Only keep Cargo.toml and Cargo.lock, for building dependencies
+        manifestFilter = path: type:
+            (craneLib.filterCargoSources path type)
+            || (builtins.match ".*/Cargo\\..*" path != null);
         tailwind-assets = pkgs.buildNpmPackage {
           name = "tailwind-assets";
           src = ./assets;
@@ -145,6 +150,12 @@
           commonArgs // {
             inherit cargoArtifacts;
 
+            src = (pkgs.lib.cleanSourceWith {
+              src = ./.;
+              filter = sourceFilter;
+              name = "source";
+            });
+
             buildPhase = ''
               cp ${tailwind-assets}/tailwind_output.css assets/tailwind_output.css
 
@@ -164,7 +175,7 @@
         name = "nju-schedule-ics";
         config = {
           Cmd = [ "${server}/nju-schedule-ics" ];
-        }
+        };
       };
     });
   };
