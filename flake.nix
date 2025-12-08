@@ -73,6 +73,7 @@
           (lib.optionals stdenv.isLinux mold)
           sqlite
           darwin.sigtool
+          binaryen
         ];
 
         buildInputs = [
@@ -158,23 +159,22 @@
 
             buildPhase = ''
               cp ${tailwind-assets}/tailwind_output.css assets/tailwind_output.css
-
               export CARGO_HOME=$cargoVendorDir
-              export RUSTFLAGS=""
 
-              # dx needs toolchain, wasm target etc provided by buildInputs
-              dx bundle
+              dx bundle --release
             '';
 
             installPhase = ''
               mkdir -p $out/
-              cp -r ./target/dx/nju-schedule-ics/debug/web/* $out/
+              cp -r ./target/dx/nju-schedule-ics/release/web/* $out/
             '';
         });
       docker = pkgs.dockerTools.buildImage {
         name = "nju-schedule-ics";
+        copyToRoot = [ server ];
         config = {
-          Cmd = [ "${server}/nju-schedule-ics" ];
+          # Cmd = [ "${server}/nju-schedule-ics" ];
+          Cmd = [ "/bin/nju-schedule-ics" ];
         };
       };
     });
