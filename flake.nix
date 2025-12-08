@@ -2,6 +2,7 @@
   inputs = {
     # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
     systems.url = "github:nix-systems/default";
 
     nix-github-actions.url = "github:nix-community/nix-github-actions";
@@ -13,6 +14,7 @@
     systems,
     nixpkgs,
     nix-github-actions,
+    crane,
     ...
   } @ inputs: let
     eachSystem = f:
@@ -70,6 +72,7 @@
           # Use mold when we are runnning in Linux
           (lib.optionals stdenv.isLinux mold)
           sqlite
+          darwin.sigtool
         ];
 
         buildInputs = [
@@ -78,6 +81,7 @@
           dioxus-cli.${pkgs.stdenv.hostPlatform.system}
           wasm-bindgen-cli.${pkgs.stdenv.hostPlatform.system}
           nodejs
+          lld
         ] ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
@@ -95,8 +99,67 @@
       });
     });
 
-    # TODO: We'll use `dx bundle` to create bundle.
-    # Should we still use nix to build it?
-    # Or just run `dx bundle` in CI?
+    packages = eachSystem(pkgs: rec {
+      server = let
+          system = pkgs.stdenv.hostPlatform.system;
+          craneLib = crane.mkLib pkgs;
+          assets = pkgs.runCommand "assets" { } ''
+              mkdir -p $out
+              cd assets/
+              npx tailwind -o $out/tailwind_output.css
+            '';
+          commonArgs = rec {
+            src1 = (pkgs.lib.cleanSourceWith {
+              src = ./.;
+              filter = myFilter;
+              name = "source";
+            });
+            src = builtins.trace src1.outPath src1;
+
+            nativeBuildInputs = devShells.${system}.default.nativeBuildInputs;
+            buildInputs = devShells.${system}.default.buildInputs;
+          };
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+          myFilter = path: type:
+              (craneLib.filterCargoSources path type)
+              || (builtins.match ".*assets/.*" path != null);
+          tailwind-assets = pkgs.buildNpmPackage {
+            name = "tailwind-assets";
+            src = ./assets;
+
+            npmDepsHash = "sha256-HRMLzN2s0CKjHXx23MAL4EURhzHhpb6gtSsocva6q8s=";
+
+            # Override the build command to generate the specific file you need
+            # Adjust 'input.css' to whatever your source css file is named
+            buildPhase = ''
+              npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css
+            '';
+
+            installPhase = ''
+              mkdir -p $out
+              cp tailwind_output.css $out/
+            '';
+          };
+
+        in craneLib.buildPackage (
+          commonArgs // {
+            inherit cargoArtifacts;
+
+            buildPhase = ''
+              cp ${tailwind-assets}/tailwind_output.css assets/tailwind_output.css
+
+              export CARGO_HOME=$cargoVendorDir
+              export RUSTFLAGS=""
+
+              # dx needs toolchain, wasm target etc provided by buildInputs
+              dx bundle
+            '';
+
+            installPhase = ''
+              mkdir -p $out/
+              cp -r ./target/dx/nju-schedule-ics/debug/web/* $out/
+            '';
+        });
+    });
   };
 }
