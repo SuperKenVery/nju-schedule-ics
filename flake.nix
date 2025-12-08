@@ -101,45 +101,45 @@
 
     packages = eachSystem(pkgs: rec {
       server = let
-          system = pkgs.stdenv.hostPlatform.system;
-          craneLib = crane.mkLib pkgs;
-          assets = pkgs.runCommand "assets" { } ''
-              mkdir -p $out
-              cd assets/
-              npx tailwind -o $out/tailwind_output.css
-            '';
-          commonArgs = rec {
-            src1 = (pkgs.lib.cleanSourceWith {
-              src = ./.;
-              filter = myFilter;
-              name = "source";
-            });
-            src = builtins.trace src1.outPath src1;
+        system = pkgs.stdenv.hostPlatform.system;
+        craneLib = crane.mkLib pkgs;
+        assets = pkgs.runCommand "assets" { } ''
+            mkdir -p $out
+            cd assets/
+            npx tailwind -o $out/tailwind_output.css
+          '';
+        commonArgs = rec {
+          src1 = (pkgs.lib.cleanSourceWith {
+            src = ./.;
+            filter = myFilter;
+            name = "source";
+          });
+          src = builtins.trace src1.outPath src1;
 
-            nativeBuildInputs = devShells.${system}.default.nativeBuildInputs;
-            buildInputs = devShells.${system}.default.buildInputs;
-          };
-          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-          myFilter = path: type:
-              (craneLib.filterCargoSources path type)
-              || (builtins.match ".*assets/.*" path != null);
-          tailwind-assets = pkgs.buildNpmPackage {
-            name = "tailwind-assets";
-            src = ./assets;
+          nativeBuildInputs = devShells.${system}.default.nativeBuildInputs;
+          buildInputs = devShells.${system}.default.buildInputs;
+        };
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+        myFilter = path: type:
+            (craneLib.filterCargoSources path type)
+            || (builtins.match ".*assets/.*" path != null);
+        tailwind-assets = pkgs.buildNpmPackage {
+          name = "tailwind-assets";
+          src = ./assets;
 
-            npmDepsHash = "sha256-HRMLzN2s0CKjHXx23MAL4EURhzHhpb6gtSsocva6q8s=";
+          npmDepsHash = "sha256-HRMLzN2s0CKjHXx23MAL4EURhzHhpb6gtSsocva6q8s=";
 
-            # Override the build command to generate the specific file you need
-            # Adjust 'input.css' to whatever your source css file is named
-            buildPhase = ''
-              npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css
-            '';
+          # Override the build command to generate the specific file you need
+          # Adjust 'input.css' to whatever your source css file is named
+          buildPhase = ''
+            npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css
+          '';
 
-            installPhase = ''
-              mkdir -p $out
-              cp tailwind_output.css $out/
-            '';
-          };
+          installPhase = ''
+            mkdir -p $out
+            cp tailwind_output.css $out/
+          '';
+        };
 
         in craneLib.buildPackage (
           commonArgs // {
@@ -160,6 +160,12 @@
               cp -r ./target/dx/nju-schedule-ics/debug/web/* $out/
             '';
         });
+      docker = pkgs.dockerTools.buildImage {
+        name = "nju-schedule-ics";
+        config = {
+          Cmd = [ "${server}/nju-schedule-ics" ];
+        }
+      };
     });
   };
 }
