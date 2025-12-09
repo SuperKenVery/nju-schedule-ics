@@ -39,7 +39,7 @@ jobs:
         needs: nix-matrix-server
         runs-on: ${{ matrix.os }}
         strategy:
-            matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+            matrix: ${{fromJSON(needs.nix-matrix-server.outputs.matrix)}}
         steps:
             - uses: actions/checkout@v4
             - uses: DeterminateSystems/nix-installer-action@main
@@ -58,7 +58,7 @@ jobs:
         needs: [nix-matrix-docker, build-server-binary] # Let's use the cache from building server
         runs-on: ${{ matrix.os }}
         strategy:
-            matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+            matrix: ${{fromJSON(needs.nix-matrix-docker.outputs.matrix)}}
         steps:
             - uses: actions/checkout@v4
             - uses: DeterminateSystems/nix-installer-action@main
