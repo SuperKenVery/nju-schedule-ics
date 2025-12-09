@@ -177,8 +177,23 @@
       };
     });
 
-    githubActions = nix-github-actions.lib.mkGithubMatrix {
-      checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-linux" "aarch64-darwin"] self.packages;
+    githubActions-server = let
+      server-package = (
+        nixpkgs.lib.mapAttrs
+        (_system: pkgs: nixpkgs.lib.removeAttrs pkgs [ "docker" ])
+        self.packages
+      );
+    in nix-github-actions.lib.mkGithubMatrix {
+      checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-linux" "aarch64-darwin"] server-package;
+    };
+    githubActions-docker = let
+      docker-package = (
+        nixpkgs.lib.mapAttrs
+        (_system: pkgs: nixpkgs.lib.removeAttrs pkgs [ "server" ])
+        self.packages
+      );
+    in nix-github-actions.lib.mkGithubMatrix {
+      checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-linux"] docker-package;
     };
   };
 }

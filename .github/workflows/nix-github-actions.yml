@@ -1,37 +1,74 @@
 name: Nix Flake actions
 
 on:
-  pull_request:
-  push:
-    branches:
-      - "**"
+    pull_request:
+    push:
+        branches:
+            - "**"
 
 jobs:
-  nix-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v24
-      - id: set-matrix
-        name: Generate Nix Matrix
-        run: |
-          set -Eeu
-          matrix="$(nix eval --json '.#githubActions.matrix')"
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-  cachix:
-    needs: nix-matrix
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-      - uses: cachix/cachix-action@v14
-        with:
-          name: superkenvery
-          # If you chose API tokens for write access OR if you have a private cache
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      - run: nix build -L ".#${{ matrix.attr }}"
+    nix-matrix-server:
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: cachix/install-nix-action@v24
+            - id: set-matrix
+              name: Generate Nix Matrix
+              run: |
+                  set -Eeu
+                  matrix="$(nix eval --json '.#githubActions-server.matrix')"
+                  echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+    nix-matrix-docker:
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: cachix/install-nix-action@v24
+            - id: set-matrix
+              name: Generate Nix Matrix
+              run: |
+                  set -Eeu
+                  matrix="$(nix eval --json '.#githubActions-docker.matrix')"
+                  echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+    build-server-binary:
+        needs: nix-matrix-server
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: DeterminateSystems/nix-installer-action@main
+            - uses: DeterminateSystems/magic-nix-cache-action@main
+            - uses: cachix/cachix-action@v14
+              with:
+                  name: superkenvery
+                  # If you chose API tokens for write access OR if you have a private cache
+                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+            - run: |
+                  attr="${{ matrix.attr }}"
+                  attr="${attr/githubActions/githubActions-server}"
+                  nix build -L ".#${attr}"
+
+    build-docker-image:
+        needs: [nix-matrix-docker, build-server-binary] # Let's use the cache from building server
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: DeterminateSystems/nix-installer-action@main
+            - uses: DeterminateSystems/magic-nix-cache-action@main
+            - uses: cachix/cachix-action@v14
+              with:
+                  name: superkenvery
+                  # If you chose API tokens for write access OR if you have a private cache
+                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+            - run: |
+                  attr="${{ matrix.attr }}"
+                  attr="${attr/githubActions/githubActions-docker}"
+                  nix build -L ".#${attr}"
