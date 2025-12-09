@@ -164,17 +164,15 @@
               dx bundle --release
             '';
 
-            installPhase = ''
+            installPhaseCommand = ''
               mkdir -p $out/
               cp -r ./target/dx/nju-schedule-ics/release/web/* $out/
             '';
         });
       docker = pkgs.dockerTools.buildImage {
         name = "nju-schedule-ics";
-        copyToRoot = [ server ];
         config = {
-          # Cmd = [ "${server}/nju-schedule-ics" ];
-          Cmd = [ "/bin/nju-schedule-ics" ];
+          Cmd = [ "${server}/nju-schedule-ics" ];
         };
       };
     });
