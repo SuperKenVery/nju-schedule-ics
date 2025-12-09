@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 aes = "0.8.3"
 anyhow = { version = "1.0.75", features = ["backtrace", "std"] }
-axum-macros = "0.4.1"
 base64 = "0.22.0"
 cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
@@ -23,13 +22,7 @@ serde = { version = "1.0.188", features = ["derive", "serde_derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"], default-features = false, optional = true }
 toml = "0.8.10"
 uuid = { version = "1.4.1", features = ["v4", "serde"], optional = true }
-log = "0.4.22"
-colog = "1.3.0"
-colored = "2.1.0"
-env_logger = "0.11.6"
-serde_json = "1.0.140"
 image = "0.25.8"
-xee-xpath = "0.1.5"
 async-trait = "0.1.89"
 downcast-rs = "2.0.2"
 derivative = "2.2.0"
@@ -37,23 +30,17 @@ map-macro = "0.3.0"
 serde_with = "3.14.0"
 dioxus = { version = "0.7.1", features = ["fullstack", "router"] }
 tracing = { version = "0.1.41", features = ["log", "async-await"] }
-getrandom = { version = "0.3.3", features = ["std", "wasm_js"] }
-strum = "0.27.2"
 daisy_rsx = "0.1.42"
 skyscraper = "0.6.4"
 web-sys = "0.3.81"
 js-sys = "0.3.81"
-wasm-bindgen = "0.2.101"
 dyn-clone = "1.0.20"
-diesel_migrations = "2.3.0"
 urlencoding = "2.1.3"
-dioxus-logger = "0.6.2"
 sqlx = { version = "0.8.6", optional = true, features = ["runtime-tokio", "sqlite", "chrono"] }
 axum = { version = "0.8.7", optional = true }
 tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
-dioxus-sdk-storage = "0.7.0"
 
 [features]
 default = []
