@@ -1,6 +1,5 @@
 //! Datastructures for parsing response of current semester.
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do
-#![allow(non_snake_case)]
 
 use anyhow::Result;
 use reqwest_middleware::ClientWithMiddleware;

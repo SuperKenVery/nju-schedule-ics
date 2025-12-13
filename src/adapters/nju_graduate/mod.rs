@@ -1,24 +1,24 @@
-//! 南京大学本科生 适配模块
-mod course;
-use crate::adapters::traits::CalendarHelper;
-use sqlx::SqlitePool;
-mod login;
-use crate::adapters::traits::School;
+//! 南京大学研究生 适配模块
+
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use derivative::Derivative;
-use std::sync::Arc;
+use sqlx::SqlitePool;
 use tokio::sync::Mutex;
 
-/// 南京大学本科生
+use crate::adapters::traits::{CalendarHelper, School};
+mod course;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct NJUUndergradAdaptor {
+pub struct NJUGraduateAdapter {
     #[derivative(Debug = "ignore")]
     connection: Arc<Mutex<SqlitePool>>,
 }
 
 #[async_trait]
-impl School for NJUUndergradAdaptor {
+impl School for NJUGraduateAdapter {
     async fn new(db: Arc<Mutex<SqlitePool>>) -> Self
     where
         Self: Sized,
@@ -36,16 +36,15 @@ impl School for NJUUndergradAdaptor {
             .await
             .expect("Failed to ensure table exists");
         }
-
         Self { connection: db }
     }
 
     fn adapter_name(&self) -> &str {
-        "南京大学本科生"
+        "南京大学研究生"
     }
 }
 
-impl CalendarHelper for NJUUndergradAdaptor {
+impl CalendarHelper for NJUGraduateAdapter {
     fn school_name(&self) -> &str {
         "南京大学"
     }

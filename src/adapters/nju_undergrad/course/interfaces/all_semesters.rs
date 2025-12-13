@@ -2,7 +2,6 @@
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxjcs.do
 //!
 //! This includes the start date of every semester.
-#![allow(non_snake_case)]
 
 use anyhow::Result;
 use reqwest_middleware::ClientWithMiddleware;
