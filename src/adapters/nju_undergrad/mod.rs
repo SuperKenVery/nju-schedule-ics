@@ -10,13 +10,13 @@ use tokio::sync::Mutex;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct NJUBatchelorAdaptor {
+pub struct NJUUndergradAdaptor {
     #[derivative(Debug = "ignore")]
     connection: Arc<Mutex<SqlitePool>>,
 }
 
 #[async_trait]
-impl School for NJUBatchelorAdaptor {
+impl School for NJUUndergradAdaptor {
     async fn new(db: Arc<Mutex<SqlitePool>>) -> Self
     where
         Self: Sized,
@@ -43,7 +43,7 @@ impl School for NJUBatchelorAdaptor {
     }
 }
 
-impl CalendarHelper for NJUBatchelorAdaptor {
+impl CalendarHelper for NJUUndergradAdaptor {
     fn school_name(&self) -> &str {
         "南京大学"
     }
