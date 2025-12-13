@@ -1,4 +1,4 @@
-use crate::adapters::nju_batchelor::NJUBatchelorAdaptor;
+use crate::adapters::nju_undergrad::NJUUndergradAdaptor;
 use crate::adapters::traits::School;
 use crate::plugins::{PlugIn, get_plugins};
 use crate::server::config::Config;
@@ -26,7 +26,7 @@ impl ServerState {
         let mut school_adapters = HashMap::<&'static str, Arc<dyn School>>::new();
         school_adapters.insert(
             "南京大学本科生",
-            Arc::new(NJUBatchelorAdaptor::new(Arc::new(Mutex::new(db.clone()))).await),
+            Arc::new(NJUUndergradAdaptor::new(Arc::new(Mutex::new(db.clone()))).await),
         );
 
         Ok(Self {

@@ -1,4 +1,4 @@
-use super::NJUBatchelorAdaptor;
+use super::NJUUndergradAdaptor;
 
 use crate::adapters::traits::{Credentials, Login, LoginSession};
 use aes::{
@@ -15,12 +15,9 @@ use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use skyscraper::html::{self};
-use skyscraper::xpath::{
-    self, XpathItemTree,
-    grammar::data_model::XpathItem,
-};
-use sqlx::prelude::FromRow;
+use skyscraper::xpath::{self, XpathItemTree, grammar::data_model::XpathItem};
 use sqlx::SqlitePool;
+use sqlx::prelude::FromRow;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
@@ -29,7 +26,7 @@ use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
 #[async_trait]
-impl Login for NJUBatchelorAdaptor {
+impl Login for NJUUndergradAdaptor {
     async fn new_login_session(&self) -> Result<Box<dyn LoginSession>> {
         Ok(Box::new(Session::new(self.connection.clone()).await?))
     }
@@ -239,7 +236,6 @@ fn encrypt(password: &str, salt: &str) -> String {
 
     let ct =
         cipher.encrypt_padded_vec_mut::<Pkcs7>(("a".repeat(64) + password).into_bytes().as_slice());
-    
 
     general_purpose::STANDARD.encode(ct)
 }
