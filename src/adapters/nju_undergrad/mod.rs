@@ -2,7 +2,7 @@
 mod course;
 use crate::adapters::traits::CalendarHelper;
 use sqlx::SqlitePool;
-mod login;
+pub mod login;
 use crate::adapters::traits::School;
 use async_trait::async_trait;
 use derivative::Derivative;

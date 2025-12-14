@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 
 use crate::adapters::traits::{CalendarHelper, School};
 mod course;
+mod login;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
