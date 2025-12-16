@@ -136,11 +136,12 @@ impl LoginSession for Session {
                 let doc = login_response
                     .text()
                     .await
-                    .context("Parsing login failed response")?
-                    .xptree()?;
+                    .context("Getting login failed response")?
+                    .xptree()
+                    .context("Parsing login fail response")?;
 
                 let reason = doc
-                    .xpath("//form[@id='casLoginForm']/span[@class='auth_error']/text()")?
+                    .xpath("//form[@id='casLoginForm']//span[@class='auth_error']/text()")?
                     .first()
                     .context("Cannot get login fail reason")?
                     .to_string();

@@ -14,10 +14,6 @@ use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use std::sync::Arc;
 
-// Most code copied from nju_undergrad::login, except the create_authenticated_client using another appId.
-
-// ehall.nju.edu.cn/appShow?appId=4979568947762216
-
 impl NJUGraduateAdapter {
     async fn to_dummy_undergraduate(&self) -> NJUUndergradAdaptor {
         NJUUndergradAdaptor::new(self.connection.clone()).await
@@ -40,6 +36,7 @@ impl Login for NJUGraduateAdapter {
             .await
     }
 
+    //  Copied from nju_undergrad::login, except that changed the final appId used to get some cookies
     async fn create_authenticated_client(
         &self,
         credentials: Box<dyn Credentials>,
