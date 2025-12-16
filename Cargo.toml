@@ -50,9 +50,13 @@ server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx"]
 [profile.wasm-dev]
 inherits = "dev"
 opt-level = 1
+lto = true
+debug = true
 
 [profile.server-dev]
 inherits = "dev"
+lto = true
+debug = true
 
 [profile.android-dev]
 inherits = "dev"
