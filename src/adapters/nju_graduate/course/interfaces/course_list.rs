@@ -1,6 +1,6 @@
 //! 对应课表页面下面的表格。这里的课程时间机器可读性很差，但有校区信息。
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -35,7 +35,7 @@ pub struct Row {
     /// 开课单位，比如`体育科学研究所`
     pub KKDW_DISPLAY: String,
     /// 首次上课日期，比如`2025-09-18`
-    pub SCSKRQ: String,
+    pub SCSKRQ: Option<String>,
     /// 课程ID，比如`081200B71`
     pub KCDM: String,
 }
@@ -52,7 +52,7 @@ impl Response {
         Ok(
             client.post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/xsjxrwcx.do?_=1765716674587")
                 .form(&form)
-                .send().await?.json().await?
+                .send().await?.json().await.context("Parsing course list for nju graduate student")?
         )
     }
 }

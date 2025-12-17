@@ -41,6 +41,7 @@ axum = { version = "0.8.7", optional = true }
 tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
+serde_json = "1.0.145"
 
 [features]
 default = []
@@ -50,13 +51,9 @@ server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx"]
 [profile.wasm-dev]
 inherits = "dev"
 opt-level = 1
-lto = true
-debug = true
 
 [profile.server-dev]
 inherits = "dev"
-lto = true
-debug = true
 
 [profile.android-dev]
 inherits = "dev"

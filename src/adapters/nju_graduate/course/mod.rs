@@ -9,6 +9,7 @@ use interfaces::courses::{Response as CoursesResponse, Row as SplittedCourse};
 use reqwest_middleware::ClientWithMiddleware;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use tracing::{Level, event};
 
 mod interfaces;
 mod utils;
@@ -94,7 +95,7 @@ async fn merge_courses(
                 let mut curr_course = course.clone();
                 used[idx] = true;
                 while let Some(consecutive) =
-                    weekday_startidx_to_course.remove(&(curr_course.XQ, curr_course.JSJCDM))
+                    weekday_startidx_to_course.remove(&(curr_course.XQ, curr_course.JSJCDM + 1))
                 {
                     // Here, consecutive's length must be 1 (there can't be 2 courses with same weekday and start idx and name!)
                     let (cidx, consecutive) = consecutive[0]; // We would never insert vec![] here, a push always follows insert
@@ -106,7 +107,7 @@ async fn merge_courses(
             }
 
             // We would return Vec of SplittedCourse (but the time is actually combined) here
-            // We flatten and convert to one Course in next step
+            // We flatten and convert to Course in next step
             combined_courses
         })
         .flatten()
@@ -119,7 +120,7 @@ impl CoursesProvider for NJUGraduateAdapter {
         let (semester_start, curr_semester_id) = get_curr_semester(client).await?;
 
         let courses = CoursesResponse::from_req(client, &curr_semester_id).await?;
-        let merged_courses = merge_courses(courses.data.xspkjgcx.rows).await;
+        let merged_courses = merge_courses(courses.datas.xspkjgcx.rows).await;
 
         let course_list = CourseTableResponse::from_req(client, &curr_semester_id).await?;
         let courseid_to_campus = build_cid_to_campus_map(course_list.datas.xsjxrwcx.rows);

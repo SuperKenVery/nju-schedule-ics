@@ -18,7 +18,9 @@ use tokio::sync::Mutex;
 #[derivative(Debug, Clone)]
 pub struct ServerState {
     pub site_url: String,
+    #[derivative(Debug = "ignore")]
     pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    #[derivative(Debug = "ignore")]
     pub plugins: Arc<Vec<Arc<dyn PlugIn>>>,
 }
 

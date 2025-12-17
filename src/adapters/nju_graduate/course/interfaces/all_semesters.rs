@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use reqwest_middleware::ClientWithMiddleware;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Response {
@@ -40,6 +40,7 @@ impl Response {
             .send()
             .await?
             .json()
-            .await?)
+            .await
+            .context("Parsing response of all semesters for nju graduate student")?)
     }
 }

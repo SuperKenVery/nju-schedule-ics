@@ -64,7 +64,7 @@ impl Login for NJUGraduateAdapter {
         );
 
         let _ = client
-            .get("https://ehall.nju.edu.cn/appShow?appId=4770397878132218")
+            .get("https://ehall.nju.edu.cn/appShow?appId=4979568947762216")
             .send()
             .await?
             .text()

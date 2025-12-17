@@ -8,7 +8,7 @@ use anyhow::Result;
 
 pub mod holidays;
 
-pub trait PlugIn: Sync + Send + Debug {
+pub trait PlugIn: Sync + Send {
     /// After school adapter has got all the courses, before creating the calendar file.
     fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
