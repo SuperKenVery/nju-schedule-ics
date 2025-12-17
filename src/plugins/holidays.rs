@@ -99,16 +99,20 @@ impl PlugIn for HolidayPlugin {
         courses
             .into_iter()
             .map(|mut course| {
-                // Filter out time slots that fall on holidays
-                let filtered_times: Vec<(DateTime<Utc>, DateTime<Utc>)> = course
-                    .time
-                    .into_iter()
-                    .filter(|(start_time, _)| !self.is_in_holiday(start_time))
-                    .collect();
+                if course.name.contains("考试") {
+                    course
+                } else {
+                    // Filter out time slots that fall on holidays
+                    let filtered_times: Vec<(DateTime<Utc>, DateTime<Utc>)> = course
+                        .time
+                        .into_iter()
+                        .filter(|(start_time, _)| !self.is_in_holiday(start_time))
+                        .collect();
 
-                // Update the course with filtered times
-                course.time = filtered_times;
-                course
+                    // Update the course with filtered times
+                    course.time = filtered_times;
+                    course
+                }
             })
             .collect()
     }

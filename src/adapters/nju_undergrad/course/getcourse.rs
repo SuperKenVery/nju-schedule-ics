@@ -11,22 +11,21 @@ pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
         interfaces::final_exams::Response::from_req(client, &current_semester).await?;
     let semester_start = get_semester_start(client, &current_semester).await?;
 
-    let mut result: Vec<Course> = courses
+    let result: Vec<Course> = courses
         .datas
         .cxxszhxqkb
         .rows
         .into_iter()
         .map(|course_json| course_json.into_course(&semester_start))
+        .chain(
+            final_exams
+                .datas
+                .cxxsksap
+                .rows
+                .into_iter()
+                .map(|exam| exam.into_course()),
+        )
         .collect();
-
-    result.extend(
-        final_exams
-            .datas
-            .cxxsksap
-            .rows
-            .into_iter()
-            .map(|exam| exam.into_course()),
-    );
 
     Ok(result)
 }
@@ -135,7 +134,7 @@ impl interfaces::courses::Course {
             campus: Some(self.XXXQDM_DISPLAY),
             notes: vec![
                 format!("班级: {}", self.JXBMC),
-                format!("教师: {}", self.JSHS),
+                format!("教师: {}", self.JSHS.unwrap_or_else(|| "未知".to_string())),
                 format!("上课班级: {}", self.SKBJ),
             ],
         }

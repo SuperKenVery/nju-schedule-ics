@@ -2,7 +2,7 @@
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do
 #![allow(non_snake_case)]
 
-use anyhow::Result;
+use anyhow::{Context, Result, anyhow};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -27,7 +27,7 @@ pub struct DataInner {
     pub rows: Vec<Row>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Row {
     /// 考试地点，比如`仙Ⅱ-105`
     pub JASMC: String,
@@ -58,12 +58,14 @@ impl Response {
             "requestParamStr" => request_param.to_string(),
         };
 
-        Ok(client
+        let exams: Self = client
             .post("https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do")
             .form(&form)
             .send()
             .await?
             .json()
-            .await?)
+            .await.context("Parsing response for final exams of nju under graduate")?;
+
+        Ok(exams)
     }
 }
