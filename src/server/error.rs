@@ -1,13 +1,12 @@
+use anyhow::Error;
 /// Below code is taken from axum example, licensed under MIT
 /// Enable `?` error handling on handlers
 use axum::{
     http::{Response, StatusCode},
     response::IntoResponse,
 };
-use log::error;
+use tracing::error;
 use uuid::Uuid;
-
-use anyhow::Error;
 
 /// Make our own error that wraps `anyhow::Error`.
 #[derive(Debug)]
@@ -21,21 +20,12 @@ impl IntoResponse for AppError {
         let error_id = Uuid::new_v4().to_string();
         error!(
             "ID={}\nError: {:?}\n{:#?}",
-            error_id,
+            error_id.as_str(),
             self.error,
             self.error.backtrace()
         );
 
-        let err = include_str!("../html/error.html");
-        let err = err.replace(
-            "ERROR",
-            format!(
-                "错误ID: {}<br />错误信息: {}",
-                error_id,
-                self.error.to_string()
-            )
-            .as_str(),
-        );
+        let err = format!("错误ID: {}\n错误信息: {}", error_id, self.error);
 
         Response::builder()
             .status(StatusCode::INTERNAL_SERVER_ERROR)

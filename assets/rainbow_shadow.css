@@ -1,0 +1,47 @@
+.rainbow-shadow {
+    padding: 2em;
+    text-align: center;
+    border-radius: 10px;
+    position: relative;
+}
+
+@property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.rainbow-shadow::after,
+.rainbow-shadow::before {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-image: conic-gradient(
+        from var(--angle),
+        #ff4545,
+        #00ff99,
+        #006aff,
+        #ff0095,
+        #ff4545
+    );
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    z-index: -1;
+    padding: 3px;
+    border-radius: 10px;
+    animation: 3s spin linear infinite;
+}
+.rainbow-shadow::before {
+    filter: blur(1.5rem);
+    opacity: 1;
+}
+@keyframes spin {
+    from {
+        --angle: 0deg;
+    }
+    to {
+        --angle: 360deg;
+    }
+}

@@ -1,10 +1,17 @@
-use nju_schedule_ics::server::error::AppError;
-use nju_schedule_ics::server::server;
-use tokio;
+use anyhow::Result;
 
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
-    server::start_server_from_commandline().await?;
+#[cfg(feature = "web")]
+use nju_schedule_ics::gui;
+
+#[cfg(feature = "server")]
+use nju_schedule_ics::server::main as server;
+
+fn main() -> Result<()> {
+    #[cfg(feature = "server")]
+    server::server_start()?;
+
+    #[cfg(feature = "web")]
+    gui::start_app();
 
     Ok(())
 }

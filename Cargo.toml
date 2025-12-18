@@ -1,13 +1,11 @@
 [package]
 name = "nju-schedule-ics"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 aes = "0.8.3"
 anyhow = { version = "1.0.75", features = ["backtrace", "std"] }
-axum = "0.7.4"
-axum-macros = "0.4.1"
 base64 = "0.22.0"
 cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
@@ -20,16 +18,42 @@ reqwest = { version = "0.11.18", features = [
 ] }
 reqwest-middleware = "0.2.3"
 reqwest-retry = "0.3.0"
-serde = { version = "1.0.188", features = ["derive"] }
-sqlx = { version = "0.8.1", features = ["sqlite", "runtime-tokio", "time"] }
-time = { version = "0.3.36", features = ["std"] }
-tl = "0.7.7"
-tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1.0.188", features = ["derive", "serde_derive"] }
+tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"], default-features = false, optional = true }
 toml = "0.8.10"
-uuid = { version = "1.4.1", features = ["v4", "serde"] }
-scraper = "0.13"
-log = "0.4.22"
-colog = "1.3.0"
-colored = "2.1.0"
-env_logger = "0.11.6"
-serde_json = "1.0.140"
+uuid = { version = "1.4.1", features = ["v4", "serde"], optional = true }
+image = "0.25.8"
+async-trait = "0.1.89"
+downcast-rs = "2.0.2"
+derivative = "2.2.0"
+map-macro = "0.3.0"
+serde_with = "3.14.0"
+dioxus = { version = "0.7.1", features = ["fullstack", "router"] }
+tracing = { version = "0.1.41", features = ["log", "async-await"] }
+daisy_rsx = "0.1.42"
+skyscraper = "0.6.4"
+web-sys = "0.3.81"
+js-sys = "0.3.81"
+dyn-clone = "1.0.20"
+urlencoding = "2.1.3"
+sqlx = { version = "0.8.6", optional = true, features = ["runtime-tokio", "sqlite", "chrono"] }
+axum = { version = "0.8.7", optional = true }
+tower = "0.5.2"
+futures-util = "0.3.31"
+tower-cookies = "0.11.0"
+serde_json = "1.0.145"
+
+[features]
+default = []
+web = ["dioxus/web"]
+server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx"]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"

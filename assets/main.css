@@ -1,0 +1,146 @@
+.me-card {
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+
+    box-shadow: 7px 7px 20px 3px #888888;
+    flex-direction: column;
+}
+
+.center-children {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fullscreen {
+    width: 100vw;
+    height: 100vh;
+}
+
+.inputbox {
+    height: 40px;
+
+    border: none;
+    border-radius: 20px;
+
+    padding: 0px 10px;
+}
+
+.inputbox:focus-visible {
+    outline: 2px solid rgb(37, 138, 233);
+    transition: outline 0.3s ease;
+}
+
+html,
+body {
+    /*width: 100%;
+    height: 100%;
+    margin: 0;*/
+    overflow: hidden;
+}
+
+#background {
+    z-index: -1;
+    position: absolute;
+    filter: blur(10px);
+    top: -5vh;
+    left: -5vw;
+    width: 110vw;
+    height: 110vh;
+    max-width: none;
+    object-fit: cover;
+    overflow: hidden;
+    margin: 0;
+}
+
+#input-container {
+    z-index: 0;
+    width: 50%;
+    min-width: 300px;
+    max-width: 500px;
+    height: 400px;
+}
+
+#input-form {
+    width: 85%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 6fr 2fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-areas:
+        "username username"
+        "password password"
+        "captcha captcha_img"
+        "school_api school_api"
+        "login login";
+    gap: 10px;
+}
+
+#login-button,
+#home-link {
+    background-color: rgb(53, 147, 235);
+    color: white;
+    font-size: medium;
+    text-decoration: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#username {
+    grid-area: username;
+}
+#password {
+    grid-area: password;
+}
+#captcha {
+    grid-area: captcha;
+}
+#captcha_image {
+    grid-area: captcha_img;
+}
+#login-button {
+    grid-area: login;
+}
+#school-api-selector {
+    grid-area: school_api;
+}
+#declaration_div {
+    width: 85%;
+    margin-block-end: 20px;
+    margin-block-start: 10px;
+}
+
+.info {
+    padding-inline: 20px;
+    text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    #background {
+        filter: brightness(30%) blur(10px);
+    }
+    body {
+        color: white;
+    }
+
+    .inputbox {
+        background-color: black;
+        color: white;
+    }
+
+    .me-card {
+        background-color: rgba(0, 0, 0, 0.15);
+        box-shadow: 7px 7px 20px 3px #000000;
+    }
+
+    #login-button {
+        background-color: rgb(25, 70, 128);
+    }
+
+    a {
+        color: rgb(37, 138, 233);
+    }
+}

@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+    themes:
+        light --default,
+        dark --prefersdark;
+}
+
+@source '../src/gui/**/*.rs';
+@source '../src/gui/*.rs';
+@source 'typescript/**/*.ts';
+@source inline("modal modal-box modal-action");
