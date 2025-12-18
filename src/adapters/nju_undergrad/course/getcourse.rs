@@ -1,21 +1,33 @@
 use super::interfaces;
 use crate::adapters::{course::Course, course::GeoLocation};
 use anyhow::{Result, anyhow, bail};
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate, NaiveTime, Utc};
 use reqwest_middleware::ClientWithMiddleware;
 
 pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
     let current_semester = get_current_semester_id(client).await?;
     let courses = interfaces::courses::Response::from_req(client, &current_semester).await?;
+    let final_exams =
+        interfaces::final_exams::Response::from_req(client, &current_semester).await?;
     let semester_start = get_semester_start(client, &current_semester).await?;
 
-    Ok(courses
+    let result: Vec<Course> = courses
         .datas
         .cxxszhxqkb
         .rows
         .into_iter()
         .map(|course_json| course_json.into_course(&semester_start))
-        .collect())
+        .chain(
+            final_exams
+                .datas
+                .cxxsksap
+                .rows
+                .into_iter()
+                .map(|exam| exam.into_course()),
+        )
+        .collect();
+
+    Ok(result)
 }
 
 async fn get_current_semester_id(client: &ClientWithMiddleware) -> Result<String> {
@@ -57,6 +69,39 @@ async fn get_semester_start(
     Ok(start_date)
 }
 
+impl interfaces::final_exams::Row {
+    pub fn into_course(self) -> Course {
+        let offset = chrono::FixedOffset::east_opt(8 * 60 * 60).unwrap();
+
+        let date = NaiveDate::parse_from_str(&self.KSRQ, "%Y-%m-%d").ok();
+        let start_time = NaiveTime::parse_from_str(&self.KSKSSJ, "%H:%M").ok();
+        let end_time = NaiveTime::parse_from_str(&self.KSJSSJ, "%H:%M").ok();
+
+        let time = match (date, start_time, end_time) {
+            (Some(date), Some(start), Some(end)) => vec![(
+                date.and_time(start)
+                    .and_local_timezone(offset)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                date.and_time(end)
+                    .and_local_timezone(offset)
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )],
+            _ => vec![],
+        };
+
+        Course {
+            name: format!("{}期末考试", self.KCM),
+            time,
+            location: Some(self.JASMC.clone()),
+            geo: GeoLocation::from_name_and_campus(&self.JASMC, ""),
+            campus: None,
+            notes: vec![format!("教师：{}", &self.ZJJSXM)],
+        }
+    }
+}
+
 impl interfaces::courses::Course {
     pub fn into_course(self, semester_start: &chrono::NaiveDate) -> Course {
         let time = self.get_time();
@@ -90,7 +135,7 @@ impl interfaces::courses::Course {
             campus: Some(self.XXXQDM_DISPLAY),
             notes: vec![
                 format!("班级: {}", self.JXBMC),
-                format!("教师: {}", self.JSHS),
+                format!("教师: {}", self.JSHS.unwrap_or_else(|| "未知".to_string())),
                 format!("上课班级: {}", self.SKBJ),
             ],
         }

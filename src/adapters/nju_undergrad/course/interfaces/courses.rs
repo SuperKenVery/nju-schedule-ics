@@ -1,7 +1,10 @@
 //! Datastructures for pasrsing response of get courses.
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/xskcb/cxxszhxqkb.do
+#![allow(non_snake_case)]
 
 use anyhow::Result;
+
+use anyhow::{Context, Result};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
@@ -32,11 +35,11 @@ pub struct Course {
     /// Course name
     pub KCM: String,
     /// Teacher
-    pub SKJS: String,
+    pub SKJS: Option<String>,
     /// Teacher with work number e.g. "1507810 王可 "
-    pub JSHS: String,
+    pub JSHS: Option<String>,
     /// Location id e.g. "XⅠ-106" for 仙1-106
-    pub JASDM: String,
+    pub JASDM: Option<String>,
     /// Location display name e.g. "仙Ⅰ-106"
     pub JASMC: String,
     /// Class e.g. 形势与政策16班"
@@ -90,6 +93,7 @@ impl Response {
             .send()
             .await?
             .json()
-            .await?)
+            .await
+            .context("Parsing courses for nju undergrad")?)
     }
 }

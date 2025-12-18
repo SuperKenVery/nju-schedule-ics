@@ -4,3 +4,4 @@
 pub mod all_semesters;
 pub mod courses;
 pub mod curr_semester;
+pub mod final_exams;

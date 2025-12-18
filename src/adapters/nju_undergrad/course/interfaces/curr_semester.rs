@@ -1,7 +1,8 @@
 //! Datastructures for parsing response of current semester.
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do
+#![allow(non_snake_case)]
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 
@@ -41,6 +42,7 @@ impl Response {
             .send()
             .await?
             .json()
-            .await?)
+            .await
+            .context("Parsing current semester for nju undergrad")?)
     }
 }
