@@ -35,12 +35,12 @@ pub struct Row {
 
 impl Response {
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Response> {
-        Ok(client
+        client
             .post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/kfdxnxqcx.do")
             .send()
             .await?
             .json()
             .await
-            .context("Parsing response of all semesters for nju graduate student")?)
+            .context("Parsing response of all semesters for nju graduate student")
     }
 }

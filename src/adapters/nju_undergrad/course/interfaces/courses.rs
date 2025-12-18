@@ -85,13 +85,13 @@ impl Response {
             "pageNumber" => "1",
         };
 
-        Ok(client
+        client
             .post("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/xskcb/cxxszhxqkb.do")
             .form(&form)
             .send()
             .await?
             .json()
             .await
-            .context("Parsing courses for nju undergrad")?)
+            .context("Parsing courses for nju undergrad")
     }
 }

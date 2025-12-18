@@ -49,10 +49,8 @@ impl Response {
             "pageSize" => "100"
         };
 
-        Ok(
-            client.post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/xsjxrwcx.do?_=1765716674587")
+        client.post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/xsjxrwcx.do?_=1765716674587")
                 .form(&form)
-                .send().await?.json().await.context("Parsing course list for nju graduate student")?
-        )
+                .send().await?.json().await.context("Parsing course list for nju graduate student")
     }
 }

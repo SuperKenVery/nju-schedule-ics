@@ -58,14 +58,12 @@ impl Response {
             "requestParamStr" => request_param.to_string(),
         };
 
-        let exams: Self = client
+        client
             .post("https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do")
             .form(&form)
             .send()
             .await?
             .json()
-            .await.context("Parsing response for final exams of nju under graduate")?;
-
-        Ok(exams)
+            .await.context("Parsing response for final exams of nju under graduate")
     }
 }

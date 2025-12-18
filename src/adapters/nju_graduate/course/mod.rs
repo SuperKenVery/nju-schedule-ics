@@ -68,8 +68,8 @@ async fn merge_courses(
     let courses_by_name = group_by(raw_courses, |c| c.BJMC.clone());
 
     courses_by_name
-        .into_iter()
-        .map(|(_name, mut courses)| {
+        .into_values()
+        .flat_map(|mut courses| {
             courses.sort_by(|a, b| {
                 match a.XQ.cmp(&b.XQ) {
                     // Compare weekday first
@@ -109,7 +109,6 @@ async fn merge_courses(
             // We flatten and convert to Course in next step
             combined_courses
         })
-        .flatten()
         .collect()
 }
 

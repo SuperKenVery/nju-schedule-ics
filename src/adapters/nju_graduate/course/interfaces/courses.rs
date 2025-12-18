@@ -79,14 +79,14 @@ impl Response {
             "XH" => "",
         };
 
-        Ok(client
+        client
             .post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/xspkjgcx.do")
             .form(&form)
             .send()
             .await?
             .json()
             .await
-            .context("Parsing schedule courses for nju graduate")?)
+            .context("Parsing schedule courses for nju graduate")
     }
 }
 
