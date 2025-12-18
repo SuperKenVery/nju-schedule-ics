@@ -1,5 +1,5 @@
 use crate::adapters::nju_undergrad::NJUUndergradAdaptor;
-use crate::adapters::nju_undergrad::login::{LoginCredential, Session};
+use crate::adapters::nju_undergrad::login::LoginCredential;
 use crate::adapters::traits::School;
 use crate::adapters::{
     nju_graduate::NJUGraduateAdapter,

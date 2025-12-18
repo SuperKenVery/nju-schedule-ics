@@ -2,7 +2,7 @@
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/studentWdksapApp/WdksapController/cxxsksap.do
 #![allow(non_snake_case)]
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;

@@ -2,14 +2,13 @@ use crate::adapters::nju_graduate::course::utils::group_by;
 use crate::adapters::{course::Course, nju_graduate::NJUGraduateAdapter, traits::CoursesProvider};
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{Duration, NaiveDateTime};
 use interfaces::all_semesters::Response as AllSemesters;
 use interfaces::course_list::{Response as CourseTableResponse, Row as CourseWithCampus};
 use interfaces::courses::{Response as CoursesResponse, Row as SplittedCourse};
 use reqwest_middleware::ClientWithMiddleware;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use tracing::{Level, event};
 
 mod interfaces;
 mod utils;
@@ -70,7 +69,7 @@ async fn merge_courses(
 
     courses_by_name
         .into_iter()
-        .map(|(name, mut courses)| {
+        .map(|(_name, mut courses)| {
             courses.sort_by(|a, b| {
                 match a.XQ.cmp(&b.XQ) {
                     // Compare weekday first

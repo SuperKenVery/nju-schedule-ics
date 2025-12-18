@@ -2,8 +2,6 @@
 //! URL: https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/xskcb/cxxszhxqkb.do
 #![allow(non_snake_case)]
 
-use anyhow::Result;
-
 use anyhow::{Context, Result};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
