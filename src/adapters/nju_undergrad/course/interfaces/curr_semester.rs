@@ -37,12 +37,12 @@ pub struct Semester {
 
 impl Response {
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Self> {
-        Ok(client
+        client
             .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")
             .send()
             .await?
             .json()
             .await
-            .context("Parsing current semester for nju undergrad")?)
+            .context("Parsing current semester for nju undergrad")
     }
 }

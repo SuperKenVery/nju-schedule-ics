@@ -136,11 +136,12 @@ impl LoginSession for Session {
                 let doc = login_response
                     .text()
                     .await
-                    .context("Parsing login failed response")?
-                    .xptree()?;
+                    .context("Getting login failed response")?
+                    .xptree()
+                    .context("Parsing login fail response")?;
 
                 let reason = doc
-                    .xpath("//form[@id='casLoginForm']/span[@class='auth_error']/text()")?
+                    .xpath("//form[@id='casLoginForm']//span[@class='auth_error']/text()")?
                     .first()
                     .context("Cannot get login fail reason")?
                     .to_string();
@@ -177,7 +178,7 @@ impl Session {
     /// Create a login session
     ///
     /// by requesting the login page
-    async fn new(db: Arc<Mutex<SqlitePool>>) -> Result<Self> {
+    pub async fn new(db: Arc<Mutex<SqlitePool>>) -> Result<Self> {
         let (client, _jar) = build_client().await?;
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
@@ -207,7 +208,7 @@ impl Session {
 }
 
 /// Extract some attributes on the page needed for POST requests.
-fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>> {
+pub fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>> {
     let variables = login_page.xpath("//form[@id='casLoginForm']/input")?;
 
     let mut context = HashMap::new();
@@ -229,7 +230,7 @@ fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>>
 }
 
 /// Encrypt the password
-fn encrypt(password: &str, salt: &str) -> String {
+pub fn encrypt(password: &str, salt: &str) -> String {
     type Aes128CbcEnc = cbc::Encryptor<Aes128>;
     let iv = "a".repeat(16).into_bytes();
     let cipher = Aes128CbcEnc::new(salt.as_bytes().into(), iv.as_slice().into());
@@ -243,7 +244,7 @@ fn encrypt(password: &str, salt: &str) -> String {
 /// Build the network client with appropriate headers needed for login page
 ///
 /// This client isn't logged in; it is used for logging in.
-async fn build_client() -> Result<(Client, Arc<Jar>)> {
+pub async fn build_client() -> Result<(Client, Arc<Jar>)> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
     headers.insert(
@@ -268,18 +269,18 @@ async fn build_client() -> Result<(Client, Arc<Jar>)> {
 }
 
 #[derive(FromRow, Clone)]
-struct LoginCredential {
+pub struct LoginCredential {
     /// The session ID
-    key: String,
+    pub key: String,
     /// The CASTGC cookie
-    value: String,
+    pub value: String,
     /// Time last accessed
-    last_access: chrono::NaiveDateTime,
+    pub last_access: chrono::NaiveDateTime,
 }
 
 // === Utils for using xpath easier ===
 
-trait ToXpathTree {
+pub trait ToXpathTree {
     fn xptree(&self) -> Result<XpathItemTree>;
 }
 
@@ -291,7 +292,7 @@ impl ToXpathTree for String {
     }
 }
 
-trait XpathExt {
+pub trait XpathExt {
     fn xpath(&self, query: &'static str) -> Result<Vec<XpathItem<'_>>>;
 }
 

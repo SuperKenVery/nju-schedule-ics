@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     adapters::{course::Course, traits::School},
@@ -8,7 +8,7 @@ use anyhow::Result;
 
 pub mod holidays;
 
-pub trait PlugIn: Sync + Send + Debug {
+pub trait PlugIn: Sync + Send {
     /// After school adapter has got all the courses, before creating the calendar file.
     fn pre_generate_calendar<'a, 'b, 'c>(
         &self,

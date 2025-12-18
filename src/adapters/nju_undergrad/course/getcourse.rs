@@ -110,7 +110,8 @@ impl interfaces::courses::Course {
                 .get_dates(semester_start)
                 .iter()
                 .map(|date| {
-                    let offset = chrono::FixedOffset::east_opt(8 * 60 * 60).unwrap();
+                    let offset = chrono::FixedOffset::east_opt(8 * 60 * 60)
+                        .expect("UTF+8 offset out of bound");
                     (
                         date.and_time(start)
                             .and_local_timezone(offset)

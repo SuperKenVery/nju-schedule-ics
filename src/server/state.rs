@@ -1,3 +1,4 @@
+use crate::adapters::nju_graduate::NJUGraduateAdapter;
 use crate::adapters::nju_undergrad::NJUUndergradAdaptor;
 use crate::adapters::traits::School;
 use crate::plugins::{PlugIn, get_plugins};
@@ -17,16 +18,23 @@ use tokio::sync::Mutex;
 #[derivative(Debug, Clone)]
 pub struct ServerState {
     pub site_url: String,
+    #[derivative(Debug = "ignore")]
     pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    #[derivative(Debug = "ignore")]
     pub plugins: Arc<Vec<Arc<dyn PlugIn>>>,
 }
 
 impl ServerState {
     pub async fn from_config(cfg: Config, db: SqlitePool) -> Result<Self> {
         let mut school_adapters = HashMap::<&'static str, Arc<dyn School>>::new();
+        let adb = Arc::new(Mutex::new(db.clone()));
         school_adapters.insert(
             "南京大学本科生",
-            Arc::new(NJUUndergradAdaptor::new(Arc::new(Mutex::new(db.clone()))).await),
+            Arc::new(NJUUndergradAdaptor::new(adb.clone()).await),
+        );
+        school_adapters.insert(
+            "南京大学研究生",
+            Arc::new(NJUGraduateAdapter::new(adb.clone()).await),
         );
 
         Ok(Self {

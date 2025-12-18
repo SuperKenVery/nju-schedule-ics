@@ -11,12 +11,19 @@ use dioxus::fullstack::FromResponse;
 use dioxus::prelude::*;
 use ics::{ICalendar, Standard, TimeZone};
 use std::sync::Arc;
-use tracing::info;
+use tracing::{Level, event, instrument};
 
 struct CalendarRet(HeaderMap, Vec<u8>);
 
 #[get("/calendar/{school_adapter}/{key}/schedule.ics", state: State<ServerState>)]
+#[instrument]
 pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<CalendarRet> {
+    event!(
+        Level::INFO,
+        "Generating calendar file for adapter: {}, key {}",
+        school_adapter,
+        key
+    );
     let school: Arc<dyn School> = state
         .school_adapters
         .lock()
@@ -28,9 +35,14 @@ pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<Ca
         .get_cred_from_db(key.as_str())
         .await
         .context("No such key. URL might be wrong.")?;
+
+    event!(Level::INFO, "Getting relevant cookies");
     let client = school.create_authenticated_client(cred).await?;
+
+    event!(Level::INFO, "Fetching courses");
     let courses = school.courses(&client).await?;
 
+    event!(Level::INFO, "Processing courses");
     let courses = state.plugins.pre_generate_calendar(&*school, courses);
 
     let calendar = calendar_from_courses(&*school, &courses)?;
@@ -38,7 +50,7 @@ pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<Ca
     let writer = std::io::Cursor::new(&mut calendar_bytes_buf);
     calendar.write(writer)?;
 
-    info!("Done generating calendar file");
+    event!(Level::INFO, "Done generating calendar file");
     let mut headers = HeaderMap::new();
     headers.insert(
         header::CONTENT_TYPE,
