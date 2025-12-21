@@ -42,6 +42,8 @@ tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
 serde_json = "1.0.145"
+dioxus-cli-config = "0.7.2"
+dioxus-logger = "0.7.2"
 
 [features]
 default = []

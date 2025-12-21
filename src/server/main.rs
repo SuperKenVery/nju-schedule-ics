@@ -7,10 +7,12 @@ use axum::Extension;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{Sqlite, SqlitePool};
 use tower_cookies::CookieManagerLayer;
-use tracing::debug;
+use tracing::{debug, info, Level};
 
 pub fn server_start() -> Result<()> {
-    debug!("Current server working dir: {:?}", std::env::current_dir());
+    dioxus_logger::init(Level::INFO).expect("Failed to init logger");
+    info!("Current server working dir: {:?}", std::env::current_dir());
+    info!("Listening on: {:?}", dioxus_cli_config::fullstack_address_or_localhost());
 
     dioxus::serve(|| async move {
         let config = Config::from_default()?;
