@@ -72,3 +72,15 @@ jobs:
                   attr="${{ matrix.attr }}"
                   attr="${attr/githubActions/githubActions-docker}"
                   nix build -L ".#${attr}"
+
+            - name: Push to GHCR using Skopeo
+              run: |
+                  # Get the path to the actual tarball
+                  IMAGE_PATH=$(readlink -f result)
+                  OS="${{ matrix.os }}"
+
+                  # Use Skopeo to copy the archive to GHCR
+                  nix run nixpkgs#skopeo -- copy \
+                    --dest-creds="${{ github.actor }}:${{ github.token }}" \
+                    docker-archive:$IMAGE_PATH \
+                    docker://ghcr.io/${{ github.repository_owner }}/nju-schedule-ics-container-${OS}:latest
