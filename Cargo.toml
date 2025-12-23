@@ -42,11 +42,15 @@ tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
 serde_json = "1.0.145"
+dioxus-cli-config = "0.7.2"
+dioxus-logger = "0.7.2"
+tower-http = { version = "0.6.8", features = ["compression-full"], optional = true }
 
 [features]
 default = []
 web = ["dioxus/web"]
-server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx"]
+server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx", "dep:tower-http"]
+tower-http = ["dep:tower-http"]
 
 [profile.wasm-dev]
 inherits = "dev"

@@ -7,7 +7,10 @@ use tracing::info;
 pub fn SchoolAPISelect() -> Element {
     let adapters = use_server_future(available_adapters)?;
     let active_idx = use_signal(|| 0);
-    let mut loading_next_page = use_signal(|| false);
+    let mut wasm_loaded = use_signal(|| false);
+    use_effect(move || {
+        wasm_loaded.set(true);
+    });
 
     rsx! {
         Hero {
@@ -39,7 +42,6 @@ pub fn SchoolAPISelect() -> Element {
                 onclick:  move |_event| async move {
                     if let Some(Ok(adapters)) = adapters() &&
                         let Some(adapter_name) = adapters.get(active_idx()) {
-                        loading_next_page.set(true);
                         set_school(adapter_name.to_string()).await?;
                         info!("Selecting school: {}", adapter_name);
 
@@ -48,7 +50,13 @@ pub fn SchoolAPISelect() -> Element {
                     }
                     Ok(())
                 },
-                "下一步"
+
+                if wasm_loaded() {
+                    "下一步"
+                }else{
+                    "加载中"
+                    span { class: "loading loading-spinner" }
+                }
             }
         }
     }

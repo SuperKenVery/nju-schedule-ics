@@ -41,7 +41,7 @@ pub fn Login() -> Element {
                             p { {format!("加载失败：{:?}", e)} }
                         },
                         None => rsx!{
-                            p { "验证码加载中" }
+                            span { class: "loading loading-spinner" }
                         }
                     }
                 }

@@ -53,12 +53,12 @@
       src = pkgs.fetchCrate {
         pname = "wasm-bindgen-cli";
         version = wasmBindgen.${pkgs.stdenv.hostPlatform.system}.version;
-        hash = "sha256-9kW+a7IreBcZ3dlUdsXjTKnclVW1C1TocYfY8gUgewE=";
+        hash = "sha256-M6WuGl7EruNopHZbqBpucu4RWz44/MSdv6f0zkYw+44=";
       };
       cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
         inherit src;
         inherit (src) pname version;
-        hash = "sha256-V0AV5jkve37a5B/UvJ9B3kwOW72vWblST8Zxs8oDctE=";
+        hash = "sha256-ElDatyOwdKwHg3bNH/1pcxKI7LXkhsotlDPQjiLHBwA=";
       };
     }));
 
@@ -104,11 +104,6 @@
       server = let
         system = pkgs.stdenv.hostPlatform.system;
         craneLib = crane.mkLib pkgs;
-        assets = pkgs.runCommand "assets" { } ''
-            mkdir -p $out
-            cd assets/
-            npx tailwind -o $out/tailwind_output.css
-          '';
         commonArgs = rec {
           src = (pkgs.lib.cleanSourceWith {
             src = ./.;
@@ -131,7 +126,8 @@
             || (builtins.match ".*/Cargo\\..*" path != null);
         tailwind-assets = pkgs.buildNpmPackage {
           name = "tailwind-assets";
-          src = ./assets;
+          src = pkgs.lib.cleanSource ./.;
+          sourceRoot = "source/assets";
 
           npmDepsHash = "sha256-HRMLzN2s0CKjHXx23MAL4EURhzHhpb6gtSsocva6q8s=";
 
@@ -161,7 +157,7 @@
               cp ${tailwind-assets}/tailwind_output.css assets/tailwind_output.css
               export CARGO_HOME=$cargoVendorDir
 
-              dx bundle --release
+              dx bundle --web --release --wasm-split
             '';
 
             installPhaseCommand = ''
@@ -173,6 +169,13 @@
         name = "nju-schedule-ics";
         config = {
           Cmd = [ "${server}/nju-schedule-ics" ];
+          WorkingDir = "/";
+          Env = [
+            "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            "RUST_BACKTRACE=1"
+            "IP=::"
+            "PORT=8080"
+          ];
         };
       };
     });
