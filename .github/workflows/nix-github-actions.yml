@@ -49,6 +49,7 @@ jobs:
                   name: superkenvery
                   # If you chose API tokens for write access OR if you have a private cache
                   authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+                  useDaemon: false
             - run: |
                   attr="${{ matrix.attr }}"
                   attr="${attr/githubActions/githubActions-server}"
@@ -68,6 +69,7 @@ jobs:
                   name: superkenvery
                   # If you chose API tokens for write access OR if you have a private cache
                   authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+                  useDaemon: false
             - run: |
                   attr="${{ matrix.attr }}"
                   attr="${attr/githubActions/githubActions-docker}"
@@ -78,9 +80,10 @@ jobs:
                   # Get the path to the actual tarball
                   IMAGE_PATH=$(readlink -f result)
                   OS="${{ matrix.system }}"
+                  OWNER_LOWER_CASE=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
                   # Use Skopeo to copy the archive to GHCR
                   nix run nixpkgs#skopeo -- copy \
                     --dest-creds="${{ github.actor }}:${{ github.token }}" \
                     docker-archive:$IMAGE_PATH \
-                    docker://ghcr.io/${{ github.repository_owner }}/nju-schedule-ics-container-${OS}:latest
+                    docker://ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics-container-${OS}:latest
