@@ -77,7 +77,7 @@ jobs:
               run: |
                   # Get the path to the actual tarball
                   IMAGE_PATH=$(readlink -f result)
-                  OS="${{ matrix.os }}"
+                  OS="${{ matrix.os[0] }}"
 
                   # Use Skopeo to copy the archive to GHCR
                   nix run nixpkgs#skopeo -- copy \
