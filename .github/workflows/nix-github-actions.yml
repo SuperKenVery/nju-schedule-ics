@@ -60,6 +60,8 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix: ${{fromJSON(needs.nix-matrix-docker.outputs.matrix)}}
+        permissions:
+            packages: write
         steps:
             - uses: actions/checkout@v4
             - uses: DeterminateSystems/nix-installer-action@main
