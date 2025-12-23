@@ -26,10 +26,15 @@ use crate::server::state::ServerState;
 /// - Now this session is done, and is removed from the HashMap in LoginProcessManager.
 #[derive(Derivative)]
 #[derivative(Debug)]
-enum LoginProcessInner {
-    Started {
-        school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
-    },
+struct LoginProcessInner {
+    school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    state: LoginProcessState,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+enum LoginProcessState {
+    Started,
     SelectedSchool {
         school: Arc<dyn School>,
         session: Box<dyn LoginSession>,
@@ -50,17 +55,20 @@ impl LoginProcess {
     /// Start a new session
     pub fn start(school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(LoginProcessInner::Started { school_adapters })),
+            inner: Arc::new(Mutex::new(LoginProcessInner {
+                school_adapters,
+                state: LoginProcessState::Started,
+            })),
         }
     }
 
     /// Set the school adapter for this session
     pub async fn select_school(&self, school_name: String) -> Result<()> {
         let mut inner = self.inner.lock().await;
-        let LoginProcessInner::Started { school_adapters } = &*inner else {
-            bail!("Cannot select school: Not in started state")
-        };
-        let school = school_adapters
+        // We don't check the current status of LoginProcess, so that users can always go back
+        // to home page safely.
+        let school = inner
+            .school_adapters
             .lock()
             .await
             .get(school_name.as_str())
@@ -71,7 +79,7 @@ impl LoginProcess {
             .new_login_session()
             .await
             .context("Creating new login session for school")?;
-        *inner = LoginProcessInner::SelectedSchool {
+        inner.state = LoginProcessState::SelectedSchool {
             school,
             session: login_session,
         };
@@ -83,7 +91,7 @@ impl LoginProcess {
     /// Get the captcha image content
     pub async fn get_captcha(&self) -> Result<DynamicImage> {
         let inner = self.inner.lock().await;
-        let LoginProcessInner::SelectedSchool { session, .. } = &*inner else {
+        let LoginProcessState::SelectedSchool { session, .. } = &inner.state else {
             bail!("Not in SelectedSchool when calling `get_captcha`. Session: {self:#?}");
         };
 
@@ -97,14 +105,14 @@ impl LoginProcess {
         captcha_answer: String,
     ) -> Result<String> {
         let mut inner = self.inner.lock().await;
-        let LoginProcessInner::SelectedSchool { school, session } = &*inner else {
+        let LoginProcessState::SelectedSchool { school, session } = &inner.state else {
             bail!("Not in SelectedSchool when calling `login`: {inner:?}");
         };
 
         let cred = session.login(username, password, captcha_answer).await?;
         let cred_db_key = session.save_cred_to_db(cred).await?;
 
-        *inner = LoginProcessInner::Finished {
+        inner.state = LoginProcessState::Finished {
             school: school.clone(),
             cred_db_key: cred_db_key.clone(),
         };
@@ -114,7 +122,7 @@ impl LoginProcess {
 
     pub async fn cred_db_key(&self) -> Option<String> {
         let inner = self.inner.lock().await;
-        if let LoginProcessInner::Finished { cred_db_key, .. } = &*inner {
+        if let LoginProcessState::Finished { cred_db_key, .. } = &inner.state {
             Some(cred_db_key.clone())
         } else {
             None
@@ -124,12 +132,12 @@ impl LoginProcess {
     pub async fn selected_school_adapter_name(&self) -> Option<String> {
         let inner = self.inner.lock().await;
 
-        match &*inner {
-            LoginProcessInner::Started { .. } => None,
-            LoginProcessInner::SelectedSchool { school, .. } => {
+        match &inner.state {
+            LoginProcessState::Started { .. } => None,
+            LoginProcessState::SelectedSchool { school, .. } => {
                 Some(school.adapter_name().to_string())
             }
-            LoginProcessInner::Finished { school, .. } => Some(school.adapter_name().to_string()),
+            LoginProcessState::Finished { school, .. } => Some(school.adapter_name().to_string()),
         }
     }
 }
