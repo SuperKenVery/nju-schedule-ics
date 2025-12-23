@@ -222,7 +222,6 @@ pub fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, Stri
         ) else {
             continue;
         };
-        info!("Context: adding name={}, value={}", name, value);
         context.insert(name.to_string(), value.to_string());
     }
 
