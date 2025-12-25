@@ -73,7 +73,7 @@ fn FieldSet(onsubmit: Option<EventHandler<FormEvent>>, children: Element) -> Ele
                 }
             },
             fieldset {
-                class: "fieldset bg-base-200 border-base-300 rounded-box w-lg border p-4",
+                class: "fieldset bg-base-200 border-base-300 rounded-box max-w-lg border p-4",
                 {children}
             }
         }
