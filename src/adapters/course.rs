@@ -58,6 +58,13 @@ impl GeoLocation {
     pub fn to_apple_location_str(&self) -> String {
         format!("geo:{},{}", self.latitude, self.longitude)
     }
+
+    pub fn to_coloros_location_str(&self) -> String {
+        format!(
+            r#"{{"EVENT_ADDRESS":"{{\"lat\":{},\"lon\":{}}}"}}"#,
+            self.latitude, self.longitude
+        )
+    }
 }
 
 const TIME_FMT: &str = "%Y%m%dT%H%M%S";
@@ -83,6 +90,7 @@ impl Course {
                         school.school_name()
                     )));
                     if let Some(geo) = self.geo {
+                        // Apple calendar
                         event.push(Geo::new(geo.to_ical_str()));
                         let mut apple_addr = Property::new(
                             "X-APPLE-STRUCTURED-LOCATION",
@@ -94,6 +102,13 @@ impl Course {
                         ));
                         apple_addr.add(Parameter::new("X-TITLE", location.clone()));
                         event.push(apple_addr);
+
+                        // ColorOS 16 calendar
+                        // Importing it via iCSx5 won't work, and importing via native calendar always reports network error.
+                        // But manually importing with this HAS map, so I'll just leave it here.
+                        let coloros_addr =
+                            Property::new("EXTENDED-ADDRESS", geo.to_coloros_location_str());
+                        event.push(coloros_addr);
                     }
                 }
 
