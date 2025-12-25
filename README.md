@@ -12,21 +12,26 @@
 - **更好的系统整合。** 此处的日历订阅通常导入到系统自带的日历，而系统自带的日历对系统里各种功能的支持肯定是特别完善的。比如桌面小组件、锁屏小组件、语音助手等功能都能安排上。
 - **地图导航。** 看到了教室名字却不知道在哪里？没关系，日程中带上了地图！只要点一下即可跳转到导航app，手把手带你前往教室！（目前只支持苹果系统，只支持仙林校区）
 
-<img width="300px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/53ee7918-d1aa-4ba8-aa61-0f27e6e85f92">
-<img width="300px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/26d8cd25-ae52-4998-9f51-7878ea74ae17">
+<img width="300px" alt="Calendar events on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/53ee7918-d1aa-4ba8-aa61-0f27e6e85f92">
+<img width="300px" alt="Event detail on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/26d8cd25-ae52-4998-9f51-7878ea74ae17">
 
-<img width="500px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8">
-<img width="400px" alt="图片" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1">
+<img width="500px" alt="Calendar events on macOS" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8">
+<img width="400px" alt="Lockscreen widgets on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1">
 
 登陆界面：
 
-<img width="915" alt="Login" src="https://github.com/user-attachments/assets/f5bd31f0-9169-4d90-ae64-8d89de65bd62">
+<img width="935" height="768" alt="Select school page" src="https://github.com/user-attachments/assets/7eae85d8-e493-46cb-ab48-f452aaae1c93" />
+<img width="935" height="768" alt="Login page" src="https://github.com/user-attachments/assets/6fe5bfae-2aa7-4231-8894-389d73e0705f" />
+
+
+
 
 ## 使用提供的服务器
 
-[这里](https://n100.tail32664.ts.net/schedule/)
+[新版](https://n100.tail32664.ts.net/schedule-new/)
+[旧版](https://n100.tail32664.ts.net/schedule/)
 
-[旧的（连不上了）](https://pi.tail32664.ts.net/schedule/)
+[旧的服务器（连不上了）](https://pi.tail32664.ts.net/schedule/)
 
 ## 隐私与数据安全
 
@@ -37,6 +42,9 @@
 日历的订阅链接不会包含除了课表外的任何其他隐私信息。
 
 我们无意偷盗你的帐号，也尽力编写保护隐私的代码。但就像任何程序一样，我们无法保证没有bug。此外，作为一个开源软件，它不提供任何担保，使用过程中的任何风险由用户自行承担。
+
+<details>
+    <summary>自建服务器</summary>
 
 ## 自建服务器
 
@@ -51,13 +59,15 @@ nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 
 如果指定的文件不存在则会生成默认的配置文件并退出。
 
-2. 也可以使用docker部署:
+2. 也可以使用容器部署:
 
 ```bash
-nix build github:SuperKenVery/nju-schedule-ics#docker
-docker load -i ./result # You will get a tag here
-touch config.toml # Without this docker would create a directory
-docker run -p 8899:8899 -v ./config.toml:/config.toml nju-schedule-ics:<use the previous tag>
+podman pull ghcr.io/superkenvery/nju-schedule-ics-container-x86_64-linux:latest
+# 然后编写好config.toml
+touch cookies.sqlite
+
+# 这里cookies.sqlite的路径根据你写的配置文件来
+podman run -p 8080:8080 -v ./config.toml:/config.toml -v ./cookies.sqlite:/cookies.sqlite nju-schedule-ics-container-x86_64-linux:latest
 ```
 
 3. 也可以从源码编译并运行：
@@ -77,12 +87,12 @@ db_path="./cookies.sqlite"
 # No trailing slash
 # Must start with https://
 site_url="https://example.com/sub_dir"
-
-# Listen address&port
-# This is different from site_url, as you'll probably
-# use a reverse proxy in front of this.
-listen_addr="0.0.0.0:8899"
 ```
+</details>
+
+
+<details>
+    <summary>参与开发</summary>
 
 ## 参与开发
 
@@ -90,7 +100,7 @@ listen_addr="0.0.0.0:8899"
 
 1. 启动tailwind css即时编译
 
-```
+```bash
 cd assets
 npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css --watch
 ```
@@ -98,7 +108,7 @@ npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css --watch
 2. 启动dioxus即时编译
 
 ```
-dx serve
+dx serve --hot-reload true
 ```
 
 ### 关于地图
@@ -122,9 +132,9 @@ dx serve
 
 ### 缺失地点
 
-日历文件中不仅会制定时间发生地点的名称，还可以指定经纬度。如果只有名称，日历app就只能在地图上搜索这个名字，但是南大内部的很多地方在地图上就搜不出来，所以就会出现很奇怪的地点。但如果指定了经纬度，就可以非常精确地指定地点了。
+日历文件中不仅会指定时间发生地点的名称，还可以指定经纬度。如果只有名称，日历app就只能在地图上搜索这个名字，但是南大内部的很多地方在地图上就搜不出来，所以就会出现很奇怪的地点。但如果指定了经纬度，就可以非常精确地指定地点了。
 
-在本项目中，名字是从课表信息中直接提取出来的，经纬度则是我做了一个映射，在`src/schedule/location.rs`中。不要害怕，这个文件超级好读：
+在本项目中，名字是从课表信息中直接提取出来的，经纬度则是我做了一个映射，比如本科生的就在`src/adapters/nju_undergrad/course/location.rs`中。不要害怕，这个文件超级好读：
 
 ```rust
 } else if location.contains("化学楼") {
@@ -148,20 +158,15 @@ dx serve
 
 大概来说，本项目分为以下三个部份：
 
-1. 与学校服务器对接，把课程信息转换为`Vec<Course>`。在本项目中是`src/nju`，与南大服务器对接。如果要适配新学校，这里应该是改动最大的地方。
-2. 把课程信息转换为iCalendar格式。在本项目中是`src/schedule`，适配新学校时应该基本不用改。
-3. 服务端，在访问时返回网页并把对应人的ics文件响应回去。在本项目中是`src/server`，适配新学校时应该基本不用改。
+1. `src/adapters`: 与学校服务器对接。如果要新增学校，就弄个新的struct，然后实现`School` trait (src/adapters/traits.rs)即可。
+2. `src/gui`: 网页UI以及服务器的API处理逻辑。这里使用dioxus的server function编写，所以前后端逻辑写在一起，代码按照页面区分。
+3. `src/server`: 服务器。主要就是解析配置、错误处理之类的。
+4. `src/plugins`: 学校无关的课程处理插件，比如避开假期。
 
-如果要适配新学校，就改第一部份应该就可以了。如果有问题欢迎提issue/discussion或者加QQ群讨论。
+如果要适配新学校，改第一部份就可以了。如果有问题欢迎提issue/discussion或者加QQ群讨论。
 
-### 项目架构
 
-html：静态网页资源
 
-nju：对接南京大学服务器
+更多内容可见注释，也欢迎GitHub Discussion/QQ群直接问～
+</details>
 
-schedule：把南大服务器返回的数据转换为ics文件
-
-server：服务端
-
-更多内容可见 `mod.rs`的注释，也欢迎GitHub Discussion/QQ群直接问～
