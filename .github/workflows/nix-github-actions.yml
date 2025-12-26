@@ -5,6 +5,11 @@ on:
     push:
         branches:
             - main
+        tags:
+            - 'v*'
+
+permissions:
+    contents: read
 
 jobs:
     nix-matrix-server:
@@ -82,24 +87,34 @@ jobs:
                   IMAGE_PATH=$(readlink -f result)
                   OS="${{ matrix.system }}"
                   OWNER_LOWER_CASE=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+                  
+                  # Determine TAG_NAME
+                  if [[ "${{ github.ref_type }}" == "tag" ]]; then
+                    TAG_NAME="${{ github.ref_name }}"
+                  else
+                    TAG_NAME="latest"
+                  fi
 
                   case "$OS" in
                     x86_64-linux)
-                      ARCH_TAG="latest-amd64"
+                      ARCH_SUFFIX="amd64"
                       ;;
                     aarch64-linux)
-                      ARCH_TAG="latest-arm64"
+                      ARCH_SUFFIX="arm64"
                       ;;
                     *)
                       echo "Unsupported system: $OS" >&2
                       exit 1
                       ;;
                   esac
+                  
+                  FULL_IMAGE_NAME="ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:${TAG_NAME}-${ARCH_SUFFIX}"
+                  echo "Pushing to $FULL_IMAGE_NAME"
 
                   nix run nixpkgs#skopeo -- copy \
                     --dest-creds="${{ github.actor }}:${{ github.token }}" \
                     docker-archive:$IMAGE_PATH \
-                    docker://ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:$ARCH_TAG
+                    docker://$FULL_IMAGE_NAME
 
     publish-multiarch-manifest:
         needs: build-docker-image
@@ -114,10 +129,20 @@ jobs:
                 DOCKER_PASSWORD: ${{ github.token }}
               run: |
                 OWNER_LOWER_CASE=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+                
+                # Determine TAG_NAME
+                if [[ "${{ github.ref_type }}" == "tag" ]]; then
+                  TAG_NAME="${{ github.ref_name }}"
+                else
+                  TAG_NAME="latest"
+                fi
+                
+                IMAGE_BASE="ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics"
 
-                nix run nixpkgs#manifest-tool -- push from-args \
-                  --platforms linux/amd64,linux/arm64 \
-                  --template ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:latest-ARCH \
-                  --target ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:latest \
+                nix run nixpkgs#manifest-tool -- \
                   --username "$DOCKER_USERNAME" \
-                  --password "$DOCKER_PASSWORD"
+                  --password "$DOCKER_PASSWORD" \
+                  push from-args \
+                  --platforms linux/amd64,linux/arm64 \
+                  --template "${IMAGE_BASE}:${TAG_NAME}-ARCH" \
+                  --target "${IMAGE_BASE}:${TAG_NAME}"
