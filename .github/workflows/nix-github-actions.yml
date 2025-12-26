@@ -5,6 +5,11 @@ on:
     push:
         branches:
             - main
+        tags:
+            - 'v*'
+
+permissions:
+    contents: read
 
 jobs:
     nix-matrix-server:
@@ -77,15 +82,67 @@ jobs:
                   attr="${attr/githubActions/githubActions-docker}"
                   nix build -L ".#${attr}"
 
-            - name: Push to GHCR using Skopeo
+            - name: Push arch-specific image to GHCR
               run: |
-                  # Get the path to the actual tarball
                   IMAGE_PATH=$(readlink -f result)
                   OS="${{ matrix.system }}"
                   OWNER_LOWER_CASE=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+                  
+                  # Determine TAG_NAME
+                  if [[ "${{ github.ref_type }}" == "tag" ]]; then
+                    TAG_NAME="${{ github.ref_name }}"
+                  else
+                    TAG_NAME="latest"
+                  fi
 
-                  # Use Skopeo to copy the archive to GHCR
+                  case "$OS" in
+                    x86_64-linux)
+                      ARCH_SUFFIX="amd64"
+                      ;;
+                    aarch64-linux)
+                      ARCH_SUFFIX="arm64"
+                      ;;
+                    *)
+                      echo "Unsupported system: $OS" >&2
+                      exit 1
+                      ;;
+                  esac
+                  
+                  FULL_IMAGE_NAME="ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:${TAG_NAME}-${ARCH_SUFFIX}"
+                  echo "Pushing to $FULL_IMAGE_NAME"
+
                   nix run nixpkgs#skopeo -- copy \
                     --dest-creds="${{ github.actor }}:${{ github.token }}" \
                     docker-archive:$IMAGE_PATH \
-                    docker://ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics-container-${OS}:latest
+                    docker://$FULL_IMAGE_NAME
+
+    publish-multiarch-manifest:
+        needs: build-docker-image
+        runs-on: ubuntu-latest
+        permissions:
+            packages: write
+        steps:
+            - uses: DeterminateSystems/nix-installer-action@main
+            - name: Publish multi-arch manifest to GHCR
+              env:
+                DOCKER_USERNAME: ${{ github.actor }}
+                DOCKER_PASSWORD: ${{ github.token }}
+              run: |
+                OWNER_LOWER_CASE=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+                
+                # Determine TAG_NAME
+                if [[ "${{ github.ref_type }}" == "tag" ]]; then
+                  TAG_NAME="${{ github.ref_name }}"
+                else
+                  TAG_NAME="latest"
+                fi
+                
+                IMAGE_BASE="ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics"
+
+                nix run nixpkgs#manifest-tool -- \
+                  --username "$DOCKER_USERNAME" \
+                  --password "$DOCKER_PASSWORD" \
+                  push from-args \
+                  --platforms linux/amd64,linux/arm64 \
+                  --template "${IMAGE_BASE}:${TAG_NAME}-ARCH" \
+                  --target "${IMAGE_BASE}:${TAG_NAME}"
