@@ -50,6 +50,9 @@
 
 ### 安装服务端
 
+由于dioxus暂不支持运行时修改`base_path`，配置文件的`site_url`必须和`Dioxus.toml`同步修改，修改后需要重新编译。
+目前，`Dioxus.toml`中的`base_path`被设为`schedule2`。
+
 1. 可以直接运行nix flake：
 
 ```bash
@@ -169,4 +172,3 @@ dx serve --hot-reload true
 
 更多内容可见注释，也欢迎GitHub Discussion/QQ群直接问～
 </details>
-
