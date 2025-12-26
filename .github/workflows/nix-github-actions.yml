@@ -107,6 +107,7 @@ jobs:
         permissions:
             packages: write
         steps:
+            - uses: DeterminateSystems/nix-installer-action@main
             - name: Publish multi-arch manifest to GHCR
               env:
                 DOCKER_USERNAME: ${{ github.actor }}
@@ -117,4 +118,6 @@ jobs:
                 nix run nixpkgs#manifest-tool -- push from-args \
                   --platforms linux/amd64,linux/arm64 \
                   --template ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:latest-ARCH \
-                  --target ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:latest
+                  --target ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:latest \
+                  --username "$DOCKER_USERNAME" \
+                  --password "$DOCKER_PASSWORD"
