@@ -10,7 +10,9 @@ use tokio::sync::Mutex;
 use crate::adapters::traits::{CalendarHelper, School};
 mod course;
 mod login;
+use macros::register_school;
 
+#[register_school]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NJUGraduateAdapter {

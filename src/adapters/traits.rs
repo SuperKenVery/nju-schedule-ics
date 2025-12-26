@@ -8,6 +8,13 @@ use reqwest_middleware::ClientWithMiddleware;
 use sqlx::SqlitePool;
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::Mutex;
+use futures_util::future::BoxFuture;
+
+pub struct SchoolRegistration {
+    pub factory: fn(Arc<Mutex<SqlitePool>>) -> BoxFuture<'static, Arc<dyn School>>,
+}
+
+inventory::collect!(SchoolRegistration);
 
 /// An adapter for a school API.
 ///

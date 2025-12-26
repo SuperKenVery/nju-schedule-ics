@@ -8,8 +8,10 @@ use async_trait::async_trait;
 use derivative::Derivative;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use macros::register_school;
 
 /// 南京大学本科生
+#[register_school]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NJUUndergradAdaptor {

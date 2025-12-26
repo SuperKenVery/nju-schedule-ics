@@ -3258,6 +3258,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
 name = "manganis"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3504,7 +3513,9 @@ dependencies = [
  "futures-util",
  "ics",
  "image",
+ "inventory",
  "js-sys",
+ "macros",
  "map-macro",
  "reqwest 0.11.27",
  "reqwest-middleware",

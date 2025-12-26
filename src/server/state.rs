@@ -1,6 +1,4 @@
-use crate::adapters::nju_graduate::NJUGraduateAdapter;
-use crate::adapters::nju_undergrad::NJUUndergradAdaptor;
-use crate::adapters::traits::School;
+use crate::adapters::traits::{School, SchoolRegistration};
 use crate::plugins::{PlugIn, get_plugins};
 use crate::server::config::Config;
 use anyhow::Result;
@@ -19,23 +17,20 @@ use tokio::sync::Mutex;
 pub struct ServerState {
     pub site_url: String,
     #[derivative(Debug = "ignore")]
-    pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    pub school_adapters: Arc<Mutex<HashMap<String, Arc<dyn School>>>>,
     #[derivative(Debug = "ignore")]
     pub plugins: Arc<Vec<Arc<dyn PlugIn>>>,
 }
 
 impl ServerState {
     pub async fn from_config(cfg: Config, db: SqlitePool) -> Result<Self> {
-        let mut school_adapters = HashMap::<&'static str, Arc<dyn School>>::new();
+        let mut school_adapters = HashMap::<String, Arc<dyn School>>::new();
         let adb = Arc::new(Mutex::new(db.clone()));
-        school_adapters.insert(
-            "南京大学本科生",
-            Arc::new(NJUUndergradAdaptor::new(adb.clone()).await),
-        );
-        school_adapters.insert(
-            "南京大学研究生",
-            Arc::new(NJUGraduateAdapter::new(adb.clone()).await),
-        );
+
+        for registration in inventory::iter::<SchoolRegistration> {
+             let adapter = (registration.factory)(adb.clone()).await;
+             school_adapters.insert(adapter.adapter_name().to_string(), adapter);
+        }
 
         Ok(Self {
             site_url: cfg.site_url,

@@ -3,6 +3,9 @@ name = "nju-schedule-ics"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = ["macros"]
+
 [dependencies]
 aes = "0.8.3"
 anyhow = { version = "1.0.75", features = ["backtrace", "std"] }
@@ -45,6 +48,8 @@ serde_json = "1.0.145"
 dioxus-cli-config = "0.7.2"
 dioxus-logger = "0.7.2"
 tower-http = { version = "0.6.8", features = ["compression-full"], optional = true }
+inventory = "0.3"
+macros = { path = "./macros" }
 
 [features]
 default = []

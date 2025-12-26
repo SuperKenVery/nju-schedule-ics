@@ -27,7 +27,7 @@ use crate::server::state::ServerState;
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct LoginProcessInner {
-    school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
+    school_adapters: Arc<Mutex<HashMap<String, Arc<dyn School>>>>,
     state: LoginProcessState,
 }
 
@@ -53,7 +53,7 @@ pub struct LoginProcess {
 
 impl LoginProcess {
     /// Start a new session
-    pub fn start(school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>) -> Self {
+    pub fn start(school_adapters: Arc<Mutex<HashMap<String, Arc<dyn School>>>>) -> Self {
         Self {
             inner: Arc::new(Mutex::new(LoginProcessInner {
                 school_adapters,
