@@ -5,7 +5,6 @@
 # HTML title tag content
 title = "南哪另一课表"
 
-base_path="schedule2/"
 
 # include `assets` in web platform
 [web.resource]

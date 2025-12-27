@@ -50,8 +50,9 @@
 
 ### 安装服务端
 
-注意：由于dioxus暂不支持运行时修改`base_path`，_配置文件的`site_url`必须和`Dioxus.toml`同步修改，修改后需要**重新编译**_。
-目前，`Dioxus.toml`中的`base_path`被设为`schedule2`。
+注意：由于dioxus对于在子目录下host网站的支持不好，本项目现不支持在子目录中搭建。
+
+也就是说，可以放在`https://a.domain.com/`，不能放在`https://a.domain.com/sub_dir`。
 
 1. 可以直接运行nix flake：
 
@@ -84,7 +85,7 @@ db_path="./cookies.sqlite"
 # The URL this site is hosted
 # No trailing slash
 # Must start with https://
-site_url="https://example.com/sub_dir"
+site_url="https://example.com"
 ```
 </details>
 
