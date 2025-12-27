@@ -29,9 +29,9 @@
 ## 使用提供的服务器
 
 [新版](https://n100.tail32664.ts.net/schedule-new/)
+
 [旧版](https://n100.tail32664.ts.net/schedule/)
 
-[旧的服务器（连不上了）](https://pi.tail32664.ts.net/schedule/)
 
 ## 隐私与数据安全
 
@@ -50,7 +50,7 @@
 
 ### 安装服务端
 
-由于dioxus暂不支持运行时修改`base_path`，配置文件的`site_url`必须和`Dioxus.toml`同步修改，修改后需要重新编译。
+注意：由于dioxus暂不支持运行时修改`base_path`，_配置文件的`site_url`必须和`Dioxus.toml`同步修改，修改后需要**重新编译**_。
 目前，`Dioxus.toml`中的`base_path`被设为`schedule2`。
 
 1. 可以直接运行nix flake：
@@ -65,18 +65,13 @@ nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 2. 也可以使用容器部署:
 
 ```bash
-podman pull ghcr.io/superkenvery/nju-schedule-ics-container-x86_64-linux:latest
-# 然后编写好config.toml
-touch cookies.sqlite
+podman pull ghcr.io/superkenvery/nju-schedule-ics:latest
+
+hx config.toml # 编写好config.toml
+touch cookies.sqlite # 准备好cookies.sqlite空文件
 
 # 这里cookies.sqlite的路径根据你写的配置文件来
-podman run -p 8080:8080 -v ./config.toml:/config.toml -v ./cookies.sqlite:/cookies.sqlite nju-schedule-ics-container-x86_64-linux:latest
-```
-
-3. 也可以从源码编译并运行：
-
-```bash
-cargo run -- --config config.toml
+podman run -p 8080:8080 -v ./config.toml:/config.toml -v ./cookies.sqlite:/cookies.sqlite ghcr.io/superkenvery/nju-schedule-ics:latest
 ```
 
 ### 配置文件
