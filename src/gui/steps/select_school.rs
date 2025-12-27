@@ -66,7 +66,7 @@ pub fn SchoolAPISelect() -> Element {
 fn SchoolAdapterMenu(adapters: Vec<String>, active_index: Signal<usize>) -> Element {
     rsx! {
         ul {
-            class: "menu rainbow-shadow mx-auto mb-5 bg-base-200 w-56 text-black",
+            class: "menu rainbow-shadow mx-auto mb-5 bg-base-200 w-96 text-black",
 
             for (idx, adapter) in adapters.iter().enumerate() {
                 li {
@@ -75,7 +75,8 @@ fn SchoolAdapterMenu(adapters: Vec<String>, active_index: Signal<usize>) -> Elem
                     },
 
                     a {
-                        class: if idx==active_index() { "menu-active" } else {""},
+                        class: String::from("text-center justify-center ") + if idx==active_index() { "bg-gray-300" } else {""},
+                        // class: "text-center w-full",
                         {adapter.clone()}
                     }
                 }
