@@ -38,15 +38,12 @@ pub(super) fn Hero(image: Option<String>, children: Element) -> Element {
     rsx! {
         div {
             class: "hero min-h-screen",
-            style: if let Some(image)=image { "background-image: url({image})" } else { "" },
+            style: if let Some(_image)=image { "background: transparent;" } else { "background: transparent;" },
 
-            div { class: "hero-overlay" }
             div {
-                // Remove text-neutral-content because that makes all text white
                 class: "hero-content text-center",
 
                 div {
-                    // class: "max-w-md",
                     {children}
                 }
             }

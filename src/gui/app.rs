@@ -7,6 +7,7 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND: Asset = asset!("/assets/tailwind_output.css");
 const RAINBOW_SHADOW: Asset = asset!("/assets/rainbow_shadow.css");
+const ANIMATED_GRADIENT: Asset = asset!("/assets/animated_gradient.css");
 
 #[derive(Routable, Clone)]
 pub(super) enum Route {
@@ -26,6 +27,9 @@ pub fn App() -> Element {
         document::Stylesheet { href: MAIN_CSS }
         document::Stylesheet { href: TAILWIND }
         document::Stylesheet { href: RAINBOW_SHADOW }
+        document::Stylesheet { href: ANIMATED_GRADIENT }
+
+        div { class: "animated-gradient-bg" }
 
         // div {
         //     h2 { "Debug variable display" }
