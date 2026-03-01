@@ -32,7 +32,7 @@ pub struct Cxxszhxqkb {
 #[derive(Deserialize, Debug)]
 pub struct Course {
     /// Course name
-    pub KCM: String,
+    pub KCM: Option<String>,
     /// Teacher
     pub SKJS: Option<String>,
     /// Teacher with work number e.g. "1507810 王可 "
@@ -40,17 +40,17 @@ pub struct Course {
     /// Location id e.g. "XⅠ-106" for 仙1-106
     pub JASDM: Option<String>,
     /// Location display name e.g. "仙Ⅰ-106"
-    pub JASMC: String,
+    pub JASMC: Option<String>,
     /// Class e.g. 形势与政策16班"
-    pub JXBMC: String,
+    pub JXBMC: Option<String>,
     /// Classes that attend this class e.g. "2022计算机学院计算机科学与技术（拔尖计划）,2022计算机学院信息与计算科学（强基计划）,2022计算机学院金融工程（计算机金融实验班）,2022计算机学院计算机科学与技术"
     pub SKBJ: Option<String>,
     /// Course days display name e.g. "周二 5-6节 3周, 7周, 11周, 15周 仙Ⅰ-106"
-    pub YPSJDD: String,
+    pub YPSJDD: Option<String>,
     /// Course days display name without spaces e.g. "周二 5-6节 3周,7周,11周,15周 仙Ⅰ-106"
-    pub ZCXQJCDD: String,
+    pub ZCXQJCDD: Option<String>,
     /// Credits
-    pub XF: f32,
+    pub XF: Option<f32>,
     /// On which course index (1-based) does this course start? (开始节次)
     /// For free-time courses, this would be "0".
     #[serde_as(as = "DisplayFromStr")]
@@ -72,7 +72,7 @@ pub struct Course {
     #[serde_as(as = "DisplayFromStr")]
     pub XXXQDM: i32,
     /// Campus name e.g. "仙林校区"
-    pub XXXQDM_DISPLAY: String,
+    pub XXXQDM_DISPLAY: Option<String>,
 }
 
 impl Response {

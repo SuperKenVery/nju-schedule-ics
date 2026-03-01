@@ -60,6 +60,7 @@ pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<Ca
     Ok(CalendarRet(headers, calendar_bytes_buf))
 }
 
+// Deserialize CalendarRet from HTTP response
 impl FromResponse for CalendarRet {
     async fn from_response(
         _res: dioxus_fullstack::ClientResponse,

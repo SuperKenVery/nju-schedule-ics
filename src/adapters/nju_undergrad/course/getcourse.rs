@@ -128,13 +128,18 @@ impl interfaces::courses::Course {
         };
 
         Course {
-            name: self.KCM,
+            name: self.KCM.unwrap_or_else(|| "未知课程".to_string()),
             time: all_course_times,
-            location: Some(self.JASMC.clone()),
-            geo: GeoLocation::from_name_and_campus(&self.JASMC, &self.XXXQDM_DISPLAY),
-            campus: Some(self.XXXQDM_DISPLAY),
+            geo: match (&self.JASMC, &self.XXXQDM_DISPLAY) {
+                (Some(location), Some(campus)) => {
+                    GeoLocation::from_name_and_campus(location, campus)
+                }
+                _ => None,
+            },
+            location: self.JASMC,
+            campus: self.XXXQDM_DISPLAY,
             notes: vec![
-                format!("班级: {}", self.JXBMC),
+                format!("班级: {}", self.JXBMC.unwrap_or_else(|| "未知".to_string())),
                 format!("教师: {}", self.JSHS.unwrap_or_else(|| "未知".to_string())),
                 format!(
                     "上课班级: {}",
