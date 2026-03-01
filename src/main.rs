@@ -1,4 +1,5 @@
 use anyhow::Result;
+use tracing::Level;
 
 #[cfg(feature = "web")]
 use nju_schedule_ics::gui;
@@ -7,6 +8,8 @@ use nju_schedule_ics::gui;
 use nju_schedule_ics::server::main as server;
 
 fn main() -> Result<()> {
+    dioxus_logger::init(Level::INFO).expect("Failed to init logger");
+
     #[cfg(feature = "server")]
     server::server_start()?;
 

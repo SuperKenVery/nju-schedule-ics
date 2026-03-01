@@ -14,7 +14,6 @@ use tower_http::compression::CompressionLayer;
 use tracing::{Level, debug, info};
 
 pub fn server_start() -> Result<()> {
-    dioxus_logger::init(Level::INFO).expect("Failed to init logger");
     info!("Current server working dir: {:?}", std::env::current_dir());
     info!(
         "Listening on: {:?}",
