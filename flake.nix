@@ -119,7 +119,9 @@
         # Keep all source and /assets for building this crate
         sourceFilter = path: type:
             (craneLib.filterCargoSources path type)
-            || (builtins.match ".*assets/.*" path != null);
+            || (builtins.match ".*assets/.*" path != null)
+            || (builtins.match ".*Dioxus.toml" path != null)
+            || (builtins.match ".*diesel.toml" path != null);
         # Only keep Cargo.toml and Cargo.lock, for building dependencies
         manifestFilter = path: type:
             (craneLib.filterCargoSources path type)
@@ -131,8 +133,7 @@
 
           npmDepsHash = "sha256-HRMLzN2s0CKjHXx23MAL4EURhzHhpb6gtSsocva6q8s=";
 
-          # Override the build command to generate the specific file you need
-          # Adjust 'input.css' to whatever your source css file is named
+          # Override the build command to generate tailwind css
           buildPhase = ''
             npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css
           '';
