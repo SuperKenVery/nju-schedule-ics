@@ -7,19 +7,20 @@ use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
+use tracing::{debug, error};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub datas: Data,
     pub code: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Data {
     pub cxxszhxqkb: Cxxszhxqkb,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Cxxszhxqkb {
     pub pageSize: i32,
     pub pageNumber: i32,
@@ -28,7 +29,7 @@ pub struct Cxxszhxqkb {
 }
 
 #[serde_as]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Course {
     /// Course name
     pub KCM: String,
@@ -43,7 +44,7 @@ pub struct Course {
     /// Class e.g. 形势与政策16班"
     pub JXBMC: String,
     /// Classes that attend this class e.g. "2022计算机学院计算机科学与技术（拔尖计划）,2022计算机学院信息与计算科学（强基计划）,2022计算机学院金融工程（计算机金融实验班）,2022计算机学院计算机科学与技术"
-    pub SKBJ: String,
+    pub SKBJ: Option<String>,
     /// Course days display name e.g. "周二 5-6节 3周, 7周, 11周, 15周 仙Ⅰ-106"
     pub YPSJDD: String,
     /// Course days display name without spaces e.g. "周二 5-6节 3周,7周,11周,15周 仙Ⅰ-106"

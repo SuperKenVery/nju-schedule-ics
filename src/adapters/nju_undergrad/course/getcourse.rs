@@ -136,7 +136,10 @@ impl interfaces::courses::Course {
             notes: vec![
                 format!("班级: {}", self.JXBMC),
                 format!("教师: {}", self.JSHS.unwrap_or_else(|| "未知".to_string())),
-                format!("上课班级: {}", self.SKBJ),
+                format!(
+                    "上课班级: {}",
+                    self.SKBJ.unwrap_or_else(|| "未知".to_string())
+                ),
             ],
         }
     }
