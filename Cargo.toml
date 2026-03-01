@@ -28,7 +28,7 @@ downcast-rs = "2.0.2"
 derivative = "2.2.0"
 map-macro = "0.3.0"
 serde_with = "3.14.0"
-dioxus = { version = "0.7.1", features = ["fullstack", "router"] }
+dioxus = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split", features = ["fullstack", "router"] }
 tracing = { version = "0.1.41", features = ["log", "async-await"] }
 daisy_rsx = "0.1.42"
 skyscraper = "0.6.4"
@@ -42,8 +42,8 @@ tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
 serde_json = "1.0.145"
-dioxus-cli-config = "0.7.2"
-dioxus-logger = "0.7.2"
+dioxus-cli-config = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split" }
+dioxus-logger = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split" }
 tower-http = { version = "0.6.8", features = ["compression-full"], optional = true }
 
 [features]

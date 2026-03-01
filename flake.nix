@@ -32,14 +32,29 @@
     });
 
     dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (oldAttrs: {
-      postPatch = ''
-        rm Cargo.lock
-        cp ${./Dioxus.lock} Cargo.lock
-      '';
+      version = "0.7.2-fix-hash-filename";
 
-      cargoDeps = pkgs.rustPlatform.importCargoLock {
-        lockFile = ./Dioxus.lock;
+      src = pkgs.fetchFromGitHub {
+        owner = "SuperKenVery";
+        repo = "dioxus";
+        rev = "d65e003ab7d58b166b465afc53dddcf6c2546fc3";
+        hash = "sha256-FNCrrP+a+wlzTAl/FR0W3gvhdyC/WWA0/TzSvcmTLD4=";
       };
+
+      cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+        inherit (oldAttrs) pname;
+        version = "0.7.2-fix-hash-filename";
+        src = pkgs.fetchFromGitHub {
+          owner = "SuperKenVery";
+          repo = "dioxus";
+          rev = "d65e003ab7d58b166b465afc53dddcf6c2546fc3";
+          hash = "sha256-FNCrrP+a+wlzTAl/FR0W3gvhdyC/WWA0/TzSvcmTLD4=";
+        };
+        hash = "sha256-b7O6uN8zZ1XdEY34GGslIJTcnAGZB6MsOQwi5WCT5YQ=";
+      };
+
+      buildAndTestSubdir = "packages/cli";
+      postPatch = "";
     }));
 
     cargoLock = builtins.fromTOML (builtins.readFile ./Cargo.lock);
@@ -53,12 +68,12 @@
       src = pkgs.fetchCrate {
         pname = "wasm-bindgen-cli";
         version = wasmBindgen.${pkgs.stdenv.hostPlatform.system}.version;
-        hash = "sha256-M6WuGl7EruNopHZbqBpucu4RWz44/MSdv6f0zkYw+44=";
+        hash = "sha256-xrCym+rFY6EUQFWyWl6OPA+LtftpUAE5pIaElAIVqW0=";
       };
       cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
         inherit src;
         inherit (src) pname version;
-        hash = "sha256-ElDatyOwdKwHg3bNH/1pcxKI7LXkhsotlDPQjiLHBwA=";
+        hash = "sha256-Z8+dUXPQq7S+Q7DWNr2Y9d8GMuEdSnq00quUR0wDNPM=";
       };
     }));
 
