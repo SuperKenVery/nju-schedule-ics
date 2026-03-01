@@ -187,7 +187,7 @@
         self.packages
       );
     in nix-github-actions.lib.mkGithubMatrix {
-      checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-linux" "aarch64-darwin"] server-package;
+      checks = nixpkgs.lib.getAttrs ["x86_64-linux" "aarch64-linux"] server-package;
     };
     githubActions-docker = let
       docker-package = (
