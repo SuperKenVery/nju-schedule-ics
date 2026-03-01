@@ -19,7 +19,7 @@ pub fn Login() -> Element {
 
     rsx! {
         Hero {
-            image: "https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg",
+            image: "https://authserver.nju.edu.cn/authserver/njuTheme/customStatic/web/images/back3.jpg",
 
             FieldSet {
                 onsubmit: move |event| {

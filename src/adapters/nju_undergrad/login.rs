@@ -21,7 +21,7 @@ use sqlx::prelude::FromRow;
 use std::sync::Arc;
 use std::{collections::HashMap, io::Cursor};
 use tokio::sync::Mutex;
-use tracing::info;
+use tracing::{debug, info};
 use uuid::Uuid;
 // use xee_xpath::{DocumentHandle, Documents, Queries, Query};
 
@@ -107,7 +107,7 @@ impl LoginSession for Session {
         let encrypted_password = encrypt(
             &password,
             self.context
-                .get("pwdDefaultEncryptSalt")
+                .get("pwdEncryptSalt")
                 .ok_or(anyhow!("Failed to find password encryption salt"))?,
         );
 
@@ -180,6 +180,7 @@ impl Session {
     /// by requesting the login page
     pub async fn new(db: Arc<Mutex<SqlitePool>>) -> Result<Self> {
         let (client, _jar) = build_client().await?;
+        debug!("Requesting login page");
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
             .send()
@@ -187,8 +188,9 @@ impl Session {
 
         let context = extract_context(login_page_response.text().await?.xptree()?)?;
 
+        debug!("Requesting captcha");
         let captcha_content = client
-            .get("https://authserver.nju.edu.cn/authserver/captcha.html")
+            .get("https://authserver.nju.edu.cn/authserver/getCaptcha.htl")
             .send()
             .await?
             .bytes()
@@ -209,7 +211,7 @@ impl Session {
 
 /// Extract some attributes on the page needed for POST requests.
 pub fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, String>> {
-    let variables = login_page.xpath("//form[@id='casLoginForm']/input")?;
+    let variables = login_page.xpath("//form[@id='pwdFromId']/input")?;
 
     let mut context = HashMap::new();
 
@@ -222,6 +224,7 @@ pub fn extract_context(login_page: XpathItemTree) -> Result<HashMap<String, Stri
         ) else {
             continue;
         };
+        debug!("Context: adding name={}, value={}", name, value);
         context.insert(name.to_string(), value.to_string());
     }
 

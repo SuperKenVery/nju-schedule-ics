@@ -23,15 +23,11 @@
 <img width="935" height="768" alt="Select school page" src="https://github.com/user-attachments/assets/7eae85d8-e493-46cb-ab48-f452aaae1c93" />
 <img width="935" height="768" alt="Login page" src="https://github.com/user-attachments/assets/6fe5bfae-2aa7-4231-8894-389d73e0705f" />
 
-
-
-
 ## 使用提供的服务器
 
 [新版](https://n100.tail32664.ts.net/schedule-new/)
 
 [旧版](https://n100.tail32664.ts.net/schedule/)
-
 
 ## 隐私与数据安全
 
@@ -86,8 +82,8 @@ db_path="./cookies.sqlite"
 # Must start with https://
 site_url="https://example.com/sub_dir"
 ```
-</details>
 
+</details>
 
 <details>
     <summary>参与开发</summary>
@@ -163,7 +159,6 @@ dx serve --hot-reload true
 
 如果要适配新学校，改第一部份就可以了。如果有问题欢迎提issue/discussion或者加QQ群讨论。
 
-
-
 更多内容可见注释，也欢迎GitHub Discussion/QQ群直接问～
+
 </details>

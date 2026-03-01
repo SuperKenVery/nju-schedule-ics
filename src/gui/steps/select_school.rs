@@ -14,7 +14,7 @@ pub fn SchoolAPISelect() -> Element {
 
     rsx! {
         Hero {
-            image: "https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg",
+            image: "https://authserver.nju.edu.cn/authserver/njuTheme/customStatic/web/images/back3.jpg",
 
             h1 {
                 class: "mb-5 text-5xl font-bold text-neutral-content",

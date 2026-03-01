@@ -19,10 +19,10 @@ pub fn ViewLink() -> Element {
 
     rsx! {
         Hero {
-            image: "https://authserver.nju.edu.cn/authserver/custom/images/back3.jpg",
+            image: "https://authserver.nju.edu.cn/authserver/njuTheme/customStatic/web/images/back3.jpg",
 
             div {
-                class: "card bg-base-200 max-w-96 card-xl shadow-sm",
+                class: "card bg-base-200 max-w-lg card-xl shadow-sm",
 
                 div {
                     class: "card-body",
