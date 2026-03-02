@@ -25,7 +25,7 @@
 
 ## 使用提供的服务器
 
-[新版](https://n100.tail32664.ts.net/schedule-new/)
+[新版](https://schedule-ics.ken.com.im/)
 
 [旧版](https://n100.tail32664.ts.net/schedule/)
 
