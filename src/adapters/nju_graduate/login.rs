@@ -12,6 +12,7 @@ use reqwest::Url;
 use reqwest::cookie::Jar;
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+use reqwest_tracing::TracingMiddleware;
 use std::sync::Arc;
 
 impl NJUGraduateAdapter {
@@ -44,7 +45,7 @@ impl Login for NJUGraduateAdapter {
         let jar = Arc::new(Jar::default());
 
         let client = reqwest_middleware::ClientBuilder::new(
-            reqwest::ClientBuilder::new()
+            reqwest::Client::builder()
                 .cookie_provider(jar.clone())
                 .user_agent("nju-schedule-ics")
                 .timeout(std::time::Duration::from_secs(10))
@@ -53,6 +54,7 @@ impl Login for NJUGraduateAdapter {
         .with(RetryTransientMiddleware::new_with_policy(
             ExponentialBackoff::builder().build_with_max_retries(3),
         ))
+        .with(TracingMiddleware::default())
         .build();
 
         let credentials: Box<LoginCredential> = credentials

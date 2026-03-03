@@ -31,25 +31,20 @@
       targets = ["wasm32-unknown-unknown"];
     });
 
-    dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (oldAttrs: {
-      version = "0.7.2-fix-hash-filename";
+    dioxus-cli = eachSystem (pkgs: pkgs.dioxus-cli.overrideAttrs (oldAttrs: rec {
+      version = "0.7.2-ken";
 
       src = pkgs.fetchFromGitHub {
         owner = "SuperKenVery";
         repo = "dioxus";
-        rev = "d65e003ab7d58b166b465afc53dddcf6c2546fc3";
-        hash = "sha256-FNCrrP+a+wlzTAl/FR0W3gvhdyC/WWA0/TzSvcmTLD4=";
+        rev = "51d8539d1701ce961b75a3f465b1cdf222a9ea48";
+        hash = "sha256-Z3M7eP9hurhknteq7iSSHM4ZCVbrudbqr/Fj+FVobes=";
       };
 
       cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
         inherit (oldAttrs) pname;
-        version = "0.7.2-fix-hash-filename";
-        src = pkgs.fetchFromGitHub {
-          owner = "SuperKenVery";
-          repo = "dioxus";
-          rev = "d65e003ab7d58b166b465afc53dddcf6c2546fc3";
-          hash = "sha256-FNCrrP+a+wlzTAl/FR0W3gvhdyC/WWA0/TzSvcmTLD4=";
-        };
+        inherit src;
+        inherit version;
         hash = "sha256-b7O6uN8zZ1XdEY34GGslIJTcnAGZB6MsOQwi5WCT5YQ=";
       };
 
@@ -111,7 +106,7 @@
         #   rustToolchain.${pkgs.stdenv.hostPlatform.system}.rust-src
         # }/lib/rustlib/src/rust/library";
         RUST_BACKTRACE = "1";
-        RUST_LOG = "warn,nju_schedule_ics=debug";
+        RUST_LOG = "warn,nju_schedule_ics=debug,reqwest_tracing=info";
       });
     });
 

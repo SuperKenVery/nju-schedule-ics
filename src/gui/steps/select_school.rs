@@ -89,6 +89,7 @@ use crate::{adapters::login_process::LoginProcess, server::state::ServerState};
 
 /// Get available adapters, also getting a session ID.
 #[get("/api/all_adapters", state: ServerState)]
+#[tracing::instrument(err)]
 pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
     let school_adapters = state.school_adapters.lock().await;
 
@@ -100,6 +101,7 @@ pub async fn available_adapters() -> Result<Vec<String>, ServerFnError> {
 }
 
 #[post("/api/set_school", session: LoginProcess)]
+#[tracing::instrument(err)]
 pub async fn set_school(name: String) -> Result<()> {
     session.select_school(name).await?;
 

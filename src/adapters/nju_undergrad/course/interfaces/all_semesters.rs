@@ -7,25 +7,26 @@
 use anyhow::{Context, Result};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub datas: Datas,
     pub code: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Datas {
     pub cxjcs: Cxjcs,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Cxjcs {
     pub totalSize: i32,
     pub rows: Vec<Semester>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Semester {
     /// Semester year e.g. "2025-2026"
     pub XN: String,
@@ -36,6 +37,7 @@ pub struct Semester {
 }
 
 impl Response {
+    #[instrument(ret, err)]
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Self> {
         client
             .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/cxjcs.do")

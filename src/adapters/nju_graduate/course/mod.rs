@@ -9,6 +9,7 @@ use interfaces::courses::{Response as CoursesResponse, Row as SplittedCourse};
 use reqwest_middleware::ClientWithMiddleware;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use tracing::{Level, event, instrument};
 
 mod interfaces;
 mod utils;
@@ -20,12 +21,19 @@ mod utils;
 /// 2. Find the latest semester whose start date is not later than today + 14 days.
 ///
 /// This is because people want to see their schedule before the semester actually starts.
+#[instrument(err)]
 async fn get_curr_semester(client: &ClientWithMiddleware) -> Result<(NaiveDateTime, String)> {
     let all_semesters = AllSemesters::from_req(client).await?;
     let semesters = all_semesters.datas.kfdxnxqcx.rows;
 
     let now = chrono::Local::now().naive_local();
     let cutoff = now + Duration::days(14); // Today + 14 days
+
+    event!(
+        Level::DEBUG,
+        all_semesters = tracing::field::debug(&semesters),
+        "Finding the current semester",
+    );
 
     semesters
         .into_iter()

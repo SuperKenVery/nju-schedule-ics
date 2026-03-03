@@ -16,14 +16,9 @@ use tracing::{Level, event, instrument};
 struct CalendarRet(HeaderMap, Vec<u8>);
 
 #[get("/calendar/{school_adapter}/{key}/schedule.ics", state: State<ServerState>)]
-#[instrument]
+#[instrument(err)]
 pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<CalendarRet> {
-    event!(
-        Level::INFO,
-        "Generating calendar file for adapter: {}, key {}",
-        school_adapter,
-        key
-    );
+    event!(Level::INFO, "Getting credentials from school");
     let school: Arc<dyn School> = state
         .school_adapters
         .lock()

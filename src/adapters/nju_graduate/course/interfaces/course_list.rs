@@ -4,19 +4,20 @@ use anyhow::{Context, Result};
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub code: String,
     pub datas: Datas,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Datas {
     pub xsjxrwcx: DataInner,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DataInner {
     pub totalSize: i32,
     pub pageNumber: i32,
@@ -24,7 +25,7 @@ pub struct DataInner {
     pub rows: Vec<Row>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Row {
     /// 带班级号课程名称，比如`匹克球02`
     pub BJMC: String,
@@ -41,6 +42,7 @@ pub struct Row {
 }
 
 impl Response {
+    #[instrument(err, ret)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let form = hash_map! {
             "XNXQDM" => semester_id,

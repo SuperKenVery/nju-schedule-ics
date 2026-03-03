@@ -11,13 +11,13 @@ cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
 clap = { version = "4.4.2", features = ["derive"] }
 ics = "0.5.8"
-reqwest = { version = "0.11.18", features = [
-    "cookie_store",
+reqwest = { version = "0.13.2", features = [
     "cookies",
     "json",
+    "form"
 ] }
-reqwest-middleware = "0.2.3"
-reqwest-retry = "0.3.0"
+reqwest-middleware = { version = "0.5.1", features = ["form"]}
+reqwest-retry = "0.9.1"
 serde = { version = "1.0.188", features = ["derive", "serde_derive"] }
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"], default-features = false, optional = true }
 toml = "0.8.10"
@@ -28,7 +28,7 @@ downcast-rs = "2.0.2"
 derivative = "2.2.0"
 map-macro = "0.3.0"
 serde_with = "3.14.0"
-dioxus = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split", features = ["fullstack", "router"] }
+dioxus = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "nju-schedule", features = ["fullstack", "router"] }
 tracing = { version = "0.1.41", features = ["log", "async-await"] }
 daisy_rsx = "0.1.42"
 skyscraper = "0.6.4"
@@ -42,15 +42,29 @@ tower = "0.5.2"
 futures-util = "0.3.31"
 tower-cookies = "0.11.0"
 serde_json = "1.0.145"
-dioxus-cli-config = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split" }
-dioxus-logger = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "fix/hash-filename-when-wasm-split" }
+dioxus-cli-config = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "nju-schedule" }
+dioxus-logger = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "nju-schedule" }
 tower-http = { version = "0.6.8", features = ["compression-full"], optional = true }
+opentelemetry = { version = "0.27", optional = true }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"], optional = true }
+opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-client"], optional = true }
+tracing-opentelemetry = { version = "0.28", optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
+reqwest-tracing = "0.7.0"
 
 [features]
 default = []
 web = ["dioxus/web"]
-server = ["dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx", "dep:tower-http"]
+server = [
+    "dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx", "dep:tower-http",
+    "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry", "dep:tracing-subscriber",
+]
 tower-http = ["dep:tower-http"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [profile.wasm-dev]
 inherits = "dev"

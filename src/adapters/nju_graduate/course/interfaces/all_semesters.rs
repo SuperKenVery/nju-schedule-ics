@@ -1,19 +1,20 @@
 use anyhow::{Context, Result};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub code: String,
     pub datas: Datas,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Datas {
     pub kfdxnxqcx: DataInner,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DataInner {
     pub totalSize: i32,
     pub pageSize: i32,
@@ -21,7 +22,7 @@ pub struct DataInner {
     // pub extParams: ExtParams,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Row {
     /// 学年学期ID，比如`20251`
     pub XNXQDM: String,
@@ -34,6 +35,7 @@ pub struct Row {
 }
 
 impl Response {
+    #[instrument(err, ret)]
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Response> {
         client
             .post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/kfdxnxqcx.do")

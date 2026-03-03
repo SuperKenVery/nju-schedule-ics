@@ -17,3 +17,7 @@ pub mod state;
 /// 在收到请求时，生成并返回ics日历文件
 #[cfg(feature = "server")]
 pub mod calendar;
+
+/// OpenTelemetry 链路追踪初始化
+#[cfg(feature = "server")]
+pub mod telemetry;

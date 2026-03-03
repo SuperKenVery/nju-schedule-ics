@@ -100,12 +100,14 @@ use crate::{adapters::login_process::LoginProcess, server::state::ServerState};
 /// Get the protocol and host part of subscription link,
 /// without trailing slash.
 #[get("/api/subscription_prefix", state: ServerState)]
+#[tracing::instrument(err)]
 async fn get_subscription_link_prefix() -> Result<String> {
     let site_url = &state.site_url;
     Ok(site_url.clone())
 }
 
 #[get("/api/subscription_key", session: LoginProcess)]
+#[tracing::instrument(err)]
 async fn get_subscription_key() -> Result<String> {
     Ok(session
         .cred_db_key()
@@ -114,6 +116,7 @@ async fn get_subscription_key() -> Result<String> {
 }
 
 #[get("/api/selected_school_name", session: LoginProcess)]
+#[tracing::instrument(err)]
 async fn get_selected_school_name() -> Result<String> {
     Ok(session
         .selected_school_adapter_name()

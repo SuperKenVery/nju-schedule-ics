@@ -14,6 +14,7 @@ use image::{DynamicImage, ImageReader};
 use reqwest::{Client, Url, cookie::Jar};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+use reqwest_tracing::TracingMiddleware;
 use skyscraper::html::{self};
 use skyscraper::xpath::{self, XpathItemTree, grammar::data_model::XpathItem};
 use sqlx::SqlitePool;
@@ -60,6 +61,7 @@ impl Login for NJUUndergradAdaptor {
         .with(RetryTransientMiddleware::new_with_policy(
             ExponentialBackoff::builder().build_with_max_retries(3),
         ))
+        .with(TracingMiddleware::default())
         .build();
 
         let credentials: Box<LoginCredential> = credentials
@@ -86,7 +88,7 @@ impl Login for NJUUndergradAdaptor {
 pub struct Session {
     db: Arc<Mutex<SqlitePool>>,
     id: String,
-    client: reqwest::Client,
+    client: ClientWithMiddleware,
     #[derivative(Debug = "ignore")]
     captcha: DynamicImage,
     context: HashMap<String, String>,
@@ -180,6 +182,7 @@ impl Session {
     /// by requesting the login page
     pub async fn new(db: Arc<Mutex<SqlitePool>>) -> Result<Self> {
         let (client, _jar) = build_client().await?;
+
         debug!("Requesting login page");
         let login_page_response = client
             .get("https://authserver.nju.edu.cn/authserver/login")
@@ -246,7 +249,7 @@ pub fn encrypt(password: &str, salt: &str) -> String {
 /// Build the network client with appropriate headers needed for login page
 ///
 /// This client isn't logged in; it is used for logging in.
-pub async fn build_client() -> Result<(Client, Arc<Jar>)> {
+pub async fn build_client() -> Result<(ClientWithMiddleware, Arc<Jar>)> {
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15".try_into().unwrap());
     headers.insert(
@@ -261,12 +264,20 @@ pub async fn build_client() -> Result<(Client, Arc<Jar>)> {
     );
 
     let jar = Arc::new(Jar::default());
-    let client = reqwest::ClientBuilder::new()
-        .default_headers(headers)
-        .cookie_provider(jar.clone())
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .unwrap();
+    let client = reqwest_middleware::ClientBuilder::new(
+        reqwest::ClientBuilder::new()
+            .default_headers(headers)
+            .cookie_provider(jar.clone())
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap(),
+    )
+    .with(RetryTransientMiddleware::new_with_policy(
+        ExponentialBackoff::builder().build_with_max_retries(3),
+    ))
+    .with(TracingMiddleware::default())
+    .build();
+
     Ok((client, jar))
 }
 

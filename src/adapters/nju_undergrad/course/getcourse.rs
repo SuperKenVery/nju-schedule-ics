@@ -3,7 +3,9 @@ use crate::adapters::{course::Course, course::GeoLocation};
 use anyhow::{Result, anyhow, bail};
 use chrono::{NaiveDate, NaiveTime, Utc};
 use reqwest_middleware::ClientWithMiddleware;
+use tracing::{Level, debug, event, instrument};
 
+#[instrument(err, ret)]
 pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
     let current_semester = get_current_semester_id(client).await?;
     let courses = interfaces::courses::Response::from_req(client, &current_semester).await?;
@@ -30,6 +32,7 @@ pub async fn get_courses(client: &ClientWithMiddleware) -> Result<Vec<Course>> {
     Ok(result)
 }
 
+#[instrument(err, ret)]
 async fn get_current_semester_id(client: &ClientWithMiddleware) -> Result<String> {
     let mut curr_semester = interfaces::curr_semester::Response::from_req(client).await?;
     let curr_semester_id = curr_semester
@@ -43,6 +46,7 @@ async fn get_current_semester_id(client: &ClientWithMiddleware) -> Result<String
     Ok(curr_semester_id)
 }
 
+#[instrument(err, ret)]
 async fn get_semester_start(
     client: &ClientWithMiddleware,
     current_semester_id: &str,
@@ -66,10 +70,19 @@ async fn get_semester_start(
     };
     let start_date = NaiveDate::parse_from_str(start_date, "%Y-%m-%d")?;
 
+    event!(
+        Level::DEBUG,
+        all_semesters = format!("{:#?}", all_semesters),
+        current_semester_id = current_semester_id,
+        current_semester = format!("{:#?}", curr_semester_info),
+        start_date = format!("{:?}", start_date)
+    );
+
     Ok(start_date)
 }
 
 impl interfaces::final_exams::Row {
+    #[instrument]
     pub fn into_course(self) -> Course {
         let offset = chrono::FixedOffset::east_opt(8 * 60 * 60).unwrap();
 
@@ -103,6 +116,7 @@ impl interfaces::final_exams::Row {
 }
 
 impl interfaces::courses::Course {
+    #[instrument]
     pub fn into_course(self, semester_start: &chrono::NaiveDate) -> Course {
         let time = self.get_time();
         let all_course_times = match time {

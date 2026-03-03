@@ -1,6 +1,8 @@
 use crate::adapters::course::GeoLocation;
+use tracing::instrument;
 
 impl GeoLocation {
+    #[instrument(ret)]
     pub fn from_name_and_campus(location: &str, _campus: &str) -> Option<Self> {
         if location.contains("仙Ⅰ") {
             // https://maps.apple.com/?ll=32.111571,118.959550&q=%E5%8D%97%E4%BA%AC%E4%BF%A1%E6%81%AF%E8%81%8C%E4%B8%9A%E6%8A%80%E6%9C%AF%E5%AD%A6%E9%99%A2&spn=0.000996,0.001228&t=m

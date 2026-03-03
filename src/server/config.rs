@@ -16,6 +16,12 @@ struct Args {
 pub struct Config {
     pub db_path: String,
     pub site_url: String,
+    /// OTLP endpoint, e.g. https://otlp-gateway-prod-ap-southeast-1.grafana.net/otlp
+    pub otel_endpoint: Option<String>,
+    /// Grafana Cloud instance ID (the "Username" shown in the OTLP credentials page)
+    pub otel_instance_id: Option<String>,
+    /// Grafana Cloud API token (the "Password" shown in the OTLP credentials page)
+    pub otel_token: Option<String>,
 }
 
 const DEFAULT_CFG: &str = r#"

@@ -9,6 +9,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
+use tracing::{Level, event, instrument};
 
 #[derive(Debug)]
 pub struct HolidayPlugin {
@@ -18,7 +19,7 @@ pub struct HolidayPlugin {
 
 fn build_client() -> Result<ClientWithMiddleware> {
     let client = reqwest_middleware::ClientBuilder::new(
-        reqwest::ClientBuilder::new()
+        reqwest::Client::builder()
             .user_agent("nju-schedule-ics")
             .timeout(std::time::Duration::from_secs(10))
             .build()?,
@@ -41,6 +42,11 @@ impl HolidayPlugin {
             .context("Failed to fetch holiday info")?
             .json::<ShuyzHolidayResponse>()
             .await?;
+        event!(
+            Level::INFO,
+            holidays = tracing::field::debug(&holidays),
+            "Getting holidays from shuyz api"
+        );
 
         let mut holiday_dates = HashSet::new();
         let mut compensate_dates = HashSet::new();
@@ -75,6 +81,7 @@ impl HolidayPlugin {
     }
 
     /// Check if a DateTime<Utc> falls on a holiday in UTC+8 timezone
+    #[instrument(ret)]
     pub fn is_in_holiday(&self, datetime: &DateTime<Utc>) -> bool {
         // Convert UTC to UTC+8
         let offset = chrono::FixedOffset::east_opt(8 * 3600).expect("8 hours offset out of bound");
@@ -87,6 +94,7 @@ impl HolidayPlugin {
 }
 
 impl PlugIn for HolidayPlugin {
+    #[instrument]
     fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
         _school: &'a dyn School,
@@ -118,7 +126,7 @@ impl PlugIn for HolidayPlugin {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(non_snake_case, dead_code)]
 struct ShuyzHolidayResponse {
     Name: String,
@@ -126,7 +134,7 @@ struct ShuyzHolidayResponse {
     Years: HashMap<i32, Vec<ShuyzHoliday>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(non_snake_case, dead_code)]
 struct ShuyzHoliday {
     Name: String,

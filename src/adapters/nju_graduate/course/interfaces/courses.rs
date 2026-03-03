@@ -7,21 +7,22 @@ use derivative::Derivative;
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
+use tracing::instrument;
 
 use crate::adapters::course::Course;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub code: String,
     pub datas: Data,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Data {
     pub xspkjgcx: DataInner,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DataInner {
     pub totalSize: i32,
     pub pageSize: i32,
@@ -32,18 +33,14 @@ pub struct DataInner {
 #[derive(Derivative, Deserialize, Clone)]
 #[derivative(Debug)]
 pub struct Row {
-    #[derivative(Debug = "ignore")]
     /// 带班级号的课程名称，比如`新时代中国特色社会主义理论与实践（19）`
     pub BJMC: String,
     /// 课程名称，比如`新时代中国特色社会主义理论与实践`
     pub KCMC: String,
-    #[derivative(Debug = "ignore")]
     /// 上课的周次，是一个文本的bitmap，比如`000111111111111111000000000000`
     pub ZCBH: String,
-    #[derivative(Debug = "ignore")]
     /// 不知道是什么时间，比如`2025-06-23 00:00:00`
     pub CZSJ: String,
-    #[derivative(Debug = "ignore")]
     /// 学期名，比如`20251`表示2025-2026上学期
     pub XNXQDM: String,
     /// 开始节次， 比如5
@@ -58,7 +55,6 @@ pub struct Row {
     pub XQ: i32,
     /// 上课地点，比如`苏教B207`
     pub JASMC: String,
-    #[derivative(Debug = "ignore")]
     /// 上课地点ID，比如`S01B207`
     pub JASDM: Option<String>,
     /// 教师姓名
@@ -73,6 +69,7 @@ pub struct Row {
 }
 
 impl Response {
+    #[instrument(ret, err)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let form = hash_map! {
             "XNXQDM" => semester_id,

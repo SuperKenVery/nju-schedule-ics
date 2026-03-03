@@ -7,7 +7,7 @@ use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
-use tracing::{debug, error};
+use tracing::{debug, error, instrument};
 
 #[derive(Deserialize, Debug)]
 pub struct Response {
@@ -79,6 +79,7 @@ impl Response {
     /// Create a courses response by sending the request.
     ///
     /// semester_id: e.g. "2025-2026-1" for first half of 2025-2026.
+    #[instrument(ret, err)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let form = hash_map! {
             "XNXQDM" => semester_id,

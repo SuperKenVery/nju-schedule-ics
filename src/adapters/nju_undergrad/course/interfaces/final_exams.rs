@@ -7,19 +7,20 @@ use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde_json::json;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub code: String,
     pub datas: Data,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Data {
     pub cxxsksap: DataInner,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct DataInner {
     pub pageSize: i32,
     pub pageNumber: i32,
@@ -49,6 +50,7 @@ impl Response {
     /// Create a final exams response by sending the request.
     ///
     /// semester_id: e.g. "2025-2026-1" for first half of 2025-2026.
+    #[instrument(err, ret)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let request_param = json!({
             "XNXQDM": semester_id,

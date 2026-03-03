@@ -8,7 +8,7 @@ use nju_schedule_ics::server::main as server;
 
 fn main() -> Result<()> {
     #[cfg(feature = "server")]
-    server::server_start()?;
+    server::server_start();
 
     #[cfg(feature = "web")]
     gui::start_app();
