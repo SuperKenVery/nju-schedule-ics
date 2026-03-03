@@ -79,7 +79,7 @@ impl Response {
     /// Create a courses response by sending the request.
     ///
     /// semester_id: e.g. "2025-2026-1" for first half of 2025-2026.
-    #[instrument(ret, err)]
+    #[instrument(name = "courses", ret, err)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let form = hash_map! {
             "XNXQDM" => semester_id,

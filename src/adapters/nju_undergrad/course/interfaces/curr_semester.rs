@@ -37,7 +37,7 @@ pub struct Semester {
 }
 
 impl Response {
-    #[instrument(ret)]
+    #[instrument(name = "curr_semester", ret)]
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Self> {
         client
             .get("https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/modules/jshkcb/dqxnxq.do")

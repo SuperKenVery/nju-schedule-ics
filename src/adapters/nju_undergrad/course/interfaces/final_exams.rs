@@ -50,7 +50,7 @@ impl Response {
     /// Create a final exams response by sending the request.
     ///
     /// semester_id: e.g. "2025-2026-1" for first half of 2025-2026.
-    #[instrument(err, ret)]
+    #[instrument(name = "final_exams", err, ret)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let request_param = json!({
             "XNXQDM": semester_id,

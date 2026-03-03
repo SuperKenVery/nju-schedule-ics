@@ -35,7 +35,7 @@ pub struct Row {
 }
 
 impl Response {
-    #[instrument(err, ret)]
+    #[instrument(name = "all_semesters", err, ret)]
     pub async fn from_req(client: &ClientWithMiddleware) -> Result<Response> {
         client
             .post("https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/modules/xskcb/kfdxnxqcx.do")

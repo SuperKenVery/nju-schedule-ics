@@ -69,7 +69,7 @@ pub struct Row {
 }
 
 impl Response {
-    #[instrument(ret, err)]
+    #[instrument(name = "courses", ret, err)]
     pub async fn from_req(client: &ClientWithMiddleware, semester_id: &str) -> Result<Self> {
         let form = hash_map! {
             "XNXQDM" => semester_id,
