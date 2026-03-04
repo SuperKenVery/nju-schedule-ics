@@ -21,9 +21,6 @@
     <td align="center"><b>日历中的课程</b></td>
     <td align="center"><b>课程详情与地图导航</b></td>
   </tr>
-</table>
-
-<table>
   <tr>
     <td align="center"><img width="500" alt="Calendar events on macOS" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8"></td>
     <td align="center"><img width="400" alt="Lockscreen widgets on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1"></td>
@@ -32,11 +29,9 @@
     <td align="center"><b>macOS 上的日历</b></td>
     <td align="center"><b>锁屏小组件</b></td>
   </tr>
-</table>
-
-登陆界面：
-
-<table>
+  <tr>
+    <td align="center" colspan="2"><b>登陆界面</b></td>
+  </tr>
   <tr>
     <td align="center"><img width="460" alt="Select school page" src="https://github.com/user-attachments/assets/7eae85d8-e493-46cb-ab48-f452aaae1c93"></td>
     <td align="center"><img width="460" alt="Login page" src="https://github.com/user-attachments/assets/6fe5bfae-2aa7-4231-8894-389d73e0705f"></td>
