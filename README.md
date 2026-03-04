@@ -12,16 +12,40 @@
 - **更好的系统整合。** 此处的日历订阅通常导入到系统自带的日历，而系统自带的日历对系统里各种功能的支持肯定是特别完善的。比如桌面小组件、锁屏小组件、语音助手等功能都能安排上。
 - **地图导航。** 看到了教室名字却不知道在哪里？没关系，日程中带上了地图！只要点一下即可跳转到导航app，手把手带你前往教室！（目前只支持苹果系统，只支持仙林校区）
 
-<img width="300px" alt="Calendar events on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/53ee7918-d1aa-4ba8-aa61-0f27e6e85f92">
-<img width="300px" alt="Event detail on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/26d8cd25-ae52-4998-9f51-7878ea74ae17">
+<table>
+  <tr>
+    <td align="center"><img width="300" alt="Calendar events on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/53ee7918-d1aa-4ba8-aa61-0f27e6e85f92"></td>
+    <td align="center"><img width="300" alt="Event detail on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/26d8cd25-ae52-4998-9f51-7878ea74ae17"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>日历中的课程</b></td>
+    <td align="center"><b>课程详情与地图导航</b></td>
+  </tr>
+</table>
 
-<img width="500px" alt="Calendar events on macOS" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8">
-<img width="400px" alt="Lockscreen widgets on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1">
+<table>
+  <tr>
+    <td align="center"><img width="500" alt="Calendar events on macOS" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/f551c18c-f113-40cb-b345-3a23cebbc4e8"></td>
+    <td align="center"><img width="400" alt="Lockscreen widgets on iPhone" src="https://github.com/SuperKenVery/nju-schedule-ics/assets/39673849/b03b2857-47e7-48c5-8e26-e55b56573ac1"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>macOS 上的日历</b></td>
+    <td align="center"><b>锁屏小组件</b></td>
+  </tr>
+</table>
 
 登陆界面：
 
-<img width="935" height="768" alt="Select school page" src="https://github.com/user-attachments/assets/7eae85d8-e493-46cb-ab48-f452aaae1c93" />
-<img width="935" height="768" alt="Login page" src="https://github.com/user-attachments/assets/6fe5bfae-2aa7-4231-8894-389d73e0705f" />
+<table>
+  <tr>
+    <td align="center"><img width="460" alt="Select school page" src="https://github.com/user-attachments/assets/7eae85d8-e493-46cb-ab48-f452aaae1c93"></td>
+    <td align="center"><img width="460" alt="Login page" src="https://github.com/user-attachments/assets/6fe5bfae-2aa7-4231-8894-389d73e0705f"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>选择学校</b></td>
+    <td align="center"><b>登陆页面</b></td>
+  </tr>
+</table>
 
 ## 使用提供的服务器
 
