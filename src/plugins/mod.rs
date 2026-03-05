@@ -5,12 +5,16 @@ use crate::{
     plugins::holidays::HolidayPlugin,
 };
 use anyhow::Result;
+use async_trait::async_trait;
+use tracing::{info_span, instrument};
 
 pub mod holidays;
 
+#[async_trait]
 pub trait PlugIn: Sync + Send {
     /// After school adapter has got all the courses, before creating the calendar file.
-    fn pre_generate_calendar<'a, 'b, 'c>(
+
+    async fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
         _school: &'a dyn School,
         courses: Vec<Course>,
@@ -22,8 +26,9 @@ pub trait PlugIn: Sync + Send {
     }
 }
 
+#[async_trait]
 impl PlugIn for Vec<Arc<dyn PlugIn>> {
-    fn pre_generate_calendar<'a, 'b, 'c>(
+    async fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
         school: &'a dyn School,
         courses: Vec<Course>,
@@ -33,7 +38,7 @@ impl PlugIn for Vec<Arc<dyn PlugIn>> {
     {
         let mut result = courses;
         for plugin in self {
-            result = plugin.pre_generate_calendar(school, result);
+            result = plugin.pre_generate_calendar(school, result).await;
         }
         result
     }

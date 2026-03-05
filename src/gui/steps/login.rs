@@ -111,7 +111,7 @@ fn InputField(
 use crate::adapters::login_process::LoginProcess;
 
 #[get("/api/get_captcha", session: LoginProcess)]
-#[tracing::instrument(err)]
+#[tracing::instrument(err, ret)]
 async fn get_captcha() -> Result<Vec<u8>> {
     use std::io::Cursor;
 
@@ -126,7 +126,7 @@ async fn get_captcha() -> Result<Vec<u8>> {
 }
 
 #[post("/api/login", session: LoginProcess)]
-#[tracing::instrument(skip(password, captcha_answer))]
+#[tracing::instrument(skip(password, captcha_answer), err)]
 async fn login_for_session(
     username: String,
     password: String,

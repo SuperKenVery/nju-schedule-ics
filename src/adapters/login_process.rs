@@ -14,6 +14,7 @@ use std::task::{Context as TaskContext, Poll};
 use tokio::sync::Mutex;
 use tower::{Layer, Service};
 use tower_cookies::Cookies;
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::adapters::traits::{LoginSession, School};
@@ -63,6 +64,7 @@ impl LoginProcess {
     }
 
     /// Set the school adapter for this session
+    #[instrument(err)]
     pub async fn select_school(&self, school_name: String) -> Result<()> {
         let mut inner = self.inner.lock().await;
         // We don't check the current status of LoginProcess, so that users can always go back
@@ -92,12 +94,13 @@ impl LoginProcess {
     pub async fn get_captcha(&self) -> Result<DynamicImage> {
         let inner = self.inner.lock().await;
         let LoginProcessState::SelectedSchool { session, .. } = &inner.state else {
-            bail!("Not in SelectedSchool when calling `get_captcha`. Session: {self:#?}");
+            bail!("Not in SelectedSchool when calling `get_captcha`. Session: {inner:#?}");
         };
 
         Ok(session.get_captcha().clone())
     }
 
+    #[instrument(err)]
     pub async fn login(
         &self,
         username: String,

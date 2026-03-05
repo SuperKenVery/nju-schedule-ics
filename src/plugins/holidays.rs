@@ -4,6 +4,7 @@ use crate::adapters::{course::Course, traits::School};
 use crate::plugins::PlugIn;
 use anyhow::Context;
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest_middleware::ClientWithMiddleware;
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -93,9 +94,9 @@ impl HolidayPlugin {
     }
 }
 
+#[async_trait]
 impl PlugIn for HolidayPlugin {
-    #[instrument]
-    fn pre_generate_calendar<'a, 'b, 'c>(
+    async fn pre_generate_calendar<'a, 'b, 'c>(
         &self,
         _school: &'a dyn School,
         courses: Vec<Course>,

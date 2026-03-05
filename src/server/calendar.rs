@@ -11,7 +11,7 @@ use dioxus::fullstack::FromResponse;
 use dioxus::prelude::*;
 use ics::{ICalendar, Standard, TimeZone};
 use std::sync::Arc;
-use tracing::{Level, event, instrument};
+use tracing::{Instrument, Level, event, info_span, instrument};
 
 struct CalendarRet(HeaderMap, Vec<u8>);
 
@@ -31,19 +31,31 @@ pub async fn get_calendar_file(school_adapter: String, key: String) -> Result<Ca
         .await
         .context("No such key. URL might be wrong.")?;
 
-    event!(Level::INFO, "Getting relevant cookies");
-    let client = school.create_authenticated_client(cred).await?;
+    let client = school
+        .create_authenticated_client(cred)
+        .instrument(info_span!("Getting relevant cookies"))
+        .await?;
 
-    event!(Level::INFO, "Fetching courses");
-    let courses = school.courses(&client).await?;
+    let courses = school
+        .courses(&client)
+        .instrument(info_span!("Fetching courses"))
+        .await?;
 
-    event!(Level::INFO, "Processing courses");
-    let courses = state.plugins.pre_generate_calendar(&*school, courses);
+    let courses = state
+        .plugins
+        .pre_generate_calendar(&*school, courses)
+        .instrument(info_span!("Running plugins"))
+        .await;
 
-    let calendar = calendar_from_courses(&*school, &courses)?;
-    let mut calendar_bytes_buf = vec![];
-    let writer = std::io::Cursor::new(&mut calendar_bytes_buf);
-    calendar.write(writer)?;
+    let calendar_bytes_buf =
+        info_span!("Generating calendar file").in_scope(|| -> Result<Vec<_>, anyhow::Error> {
+            let calendar = calendar_from_courses(&*school, &courses)?;
+            let mut calendar_bytes_buf = vec![];
+            let writer = std::io::Cursor::new(&mut calendar_bytes_buf);
+            calendar.write(writer)?;
+
+            Ok(calendar_bytes_buf)
+        })?;
 
     event!(Level::INFO, "Done generating calendar file");
     let mut headers = HeaderMap::new();
