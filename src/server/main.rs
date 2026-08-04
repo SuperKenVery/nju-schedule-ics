@@ -3,15 +3,12 @@ use crate::adapters::login_process::LoginProcessManagerLayer;
 use crate::gui::app::App;
 use crate::server::config::Config;
 use anyhow::Result;
-use axum::error_handling::HandleErrorLayer;
-use axum::http::StatusCode;
-use axum::{Extension, Json};
+use axum::Extension;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{Sqlite, SqlitePool};
-use tower::{BoxError, ServiceBuilder};
 use tower_cookies::CookieManagerLayer;
 use tower_http::compression::CompressionLayer;
-use tracing::{debug, info};
+use tracing::info;
 
 pub fn server_start() -> Result<()> {
     let config = Config::from_default()?;

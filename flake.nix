@@ -50,6 +50,10 @@
 
       buildAndTestSubdir = "packages/cli";
       postPatch = "";
+
+      # The custom 0.7.2 fork predates the `dx completions` subcommand used by
+      # the current nixpkgs dioxus-cli package.
+      postInstall = "";
     }));
 
     cargoLock = builtins.fromTOML (builtins.readFile ./Cargo.lock);

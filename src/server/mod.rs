@@ -21,3 +21,7 @@ pub mod calendar;
 /// OpenTelemetry 链路追踪初始化
 #[cfg(feature = "server")]
 pub mod telemetry;
+
+/// Global rate limiting for client login requests.
+#[cfg(feature = "server")]
+pub mod login_rate_limit;

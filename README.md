@@ -100,6 +100,12 @@ db_path="./cookies.sqlite"
 # No trailing slash
 # Must start with https://
 site_url="https://example.com/sub_dir"
+
+# Global token bucket for browser login requests.
+# This allows a burst of 5 requests and then adds one token every 5 seconds.
+[login_rate_limit]
+tokens_per_second=0.2
+capacity=5
 ```
 
 </details>
@@ -115,6 +121,7 @@ site_url="https://example.com/sub_dir"
 
 ```bash
 cd assets
+npm install
 npx @tailwindcss/cli -i tailwind.css -o tailwind_output.css --watch
 ```
 
