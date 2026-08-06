@@ -1,4 +1,13 @@
 {
+  nixConfig = {
+    extra-substituters = [
+      "https://oranc.li7g.com/ghcr.io/superkenvery/nju-schedule-ics-nix-cache"
+    ];
+    extra-trusted-public-keys = [
+      "nju-schedule-ics-oranc-1:LHJ296lKhHkJJqohXJpeUxX00KgFW8DpfkPVTAJ+/Qs="
+    ];
+  };
+
   inputs = {
     # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";

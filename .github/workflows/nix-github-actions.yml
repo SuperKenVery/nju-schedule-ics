@@ -19,7 +19,10 @@ jobs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
             - uses: actions/checkout@v4
-            - uses: cachix/install-nix-action@v24
+            - uses: DeterminateSystems/nix-installer-action@main
+              with:
+                  extra-conf: |
+                      accept-flake-config = true
             - id: set-matrix
               name: Generate Nix Matrix
               run: |
@@ -33,7 +36,10 @@ jobs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
             - uses: actions/checkout@v4
-            - uses: cachix/install-nix-action@v24
+            - uses: DeterminateSystems/nix-installer-action@main
+              with:
+                  extra-conf: |
+                      accept-flake-config = true
             - id: set-matrix
               name: Generate Nix Matrix
               run: |
@@ -44,18 +50,28 @@ jobs:
     build-server-binary:
         needs: nix-matrix-server
         runs-on: ${{ matrix.os }}
+        permissions:
+            contents: read
+            packages: write
+        services:
+            oranc:
+                image: ghcr.io/linyinfeng/oranc
         strategy:
             matrix: ${{fromJSON(needs.nix-matrix-server.outputs.matrix)}}
         steps:
             - uses: actions/checkout@v4
             - uses: DeterminateSystems/nix-installer-action@main
-            - uses: DeterminateSystems/magic-nix-cache-action@main
-            - uses: cachix/cachix-action@v14
               with:
-                  name: superkenvery
-                  # If you chose API tokens for write access OR if you have a private cache
-                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-                  useDaemon: false
+                  extra-conf: |
+                      accept-flake-config = true
+            - uses: linyinfeng/oranc-action@v1
+              if: github.event_name != 'pull_request'
+              with:
+                  orancServerContainer: ${{ job.services.oranc.id }}
+                  repositoryPart1: superkenvery
+                  repositoryPart2: nju-schedule-ics-nix-cache
+                  signingKey: ${{ secrets.ORANC_SIGNING_KEY }}
+                  initialize: true
             - run: |
                   attr="${{ matrix.attr }}"
                   attr="${attr/githubActions/githubActions-server}"
@@ -67,17 +83,25 @@ jobs:
         strategy:
             matrix: ${{fromJSON(needs.nix-matrix-docker.outputs.matrix)}}
         permissions:
+            contents: read
             packages: write
+        services:
+            oranc:
+                image: ghcr.io/linyinfeng/oranc
         steps:
             - uses: actions/checkout@v4
             - uses: DeterminateSystems/nix-installer-action@main
-            - uses: DeterminateSystems/magic-nix-cache-action@main
-            - uses: cachix/cachix-action@v14
               with:
-                  name: superkenvery
-                  # If you chose API tokens for write access OR if you have a private cache
-                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-                  useDaemon: false
+                  extra-conf: |
+                      accept-flake-config = true
+            - uses: linyinfeng/oranc-action@v1
+              if: github.event_name != 'pull_request'
+              with:
+                  orancServerContainer: ${{ job.services.oranc.id }}
+                  repositoryPart1: superkenvery
+                  repositoryPart2: nju-schedule-ics-nix-cache
+                  signingKey: ${{ secrets.ORANC_SIGNING_KEY }}
+                  initialize: true
             - run: |
                   attr="${{ matrix.attr }}"
                   attr="${attr/githubActions/githubActions-docker}"
@@ -114,8 +138,8 @@ jobs:
 
                   nix run nixpkgs#skopeo -- copy \
                     --dest-creds="${{ github.actor }}:${{ github.token }}" \
-                    docker-archive:$IMAGE_PATH \
-                    docker://$FULL_IMAGE_NAME
+                    "docker-archive:$IMAGE_PATH" \
+                    "docker://$FULL_IMAGE_NAME"
 
     publish-multiarch-manifest:
         needs: build-docker-image

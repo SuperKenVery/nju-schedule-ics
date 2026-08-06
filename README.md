@@ -71,9 +71,10 @@
 1. 可以直接运行nix flake：
 
 ```bash
-cachix use superkenvery  # 使用我的构建缓存，避免编译
 nix run github:SuperKenVery/nju-schedule-ics -- --config config.toml
 ```
+
+Flake 已配置 GHCR 构建缓存，Nix 会在首次使用时请求确认该配置。
 
 如果指定的文件不存在则会生成默认的配置文件并退出。
 
