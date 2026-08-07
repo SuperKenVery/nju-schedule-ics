@@ -97,6 +97,7 @@
           wasm-bindgen-cli.${pkgs.stdenv.hostPlatform.system}
           nodejs
           lld
+          perl
         ] ++
         (pkgs.lib.optionals pkgs.stdenv.isLinux (with pkgs; [
           openssl
