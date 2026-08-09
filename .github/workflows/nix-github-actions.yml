@@ -111,10 +111,15 @@ jobs:
                   FULL_IMAGE_NAME="ghcr.io/${OWNER_LOWER_CASE}/nju-schedule-ics:${TAG_NAME}-${ARCH_SUFFIX}"
                   echo "Pushing to $FULL_IMAGE_NAME"
 
+                  # The Nix-provided skopeo may be newer than the runner's
+                  # system registries.conf. A user config takes precedence and
+                  # avoids parsing the runner's legacy v1 configuration.
+                  install -D -m 0644 /dev/null "$HOME/.config/containers/registries.conf"
+
                   nix run nixpkgs#skopeo -- copy \
                     --dest-creds="${{ github.actor }}:${{ github.token }}" \
-                    docker-archive:$IMAGE_PATH \
-                    docker://$FULL_IMAGE_NAME
+                    "docker-archive:$IMAGE_PATH" \
+                    "docker://$FULL_IMAGE_NAME"
 
     publish-multiarch-manifest:
         needs: build-docker-image
