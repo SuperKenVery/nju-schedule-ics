@@ -91,13 +91,13 @@ impl LoginProcess {
     }
 
     /// Get the captcha image content
-    pub async fn get_captcha(&self) -> Result<DynamicImage> {
+    pub async fn get_captcha(&self) -> Result<Option<DynamicImage>> {
         let inner = self.inner.lock().await;
         let LoginProcessState::SelectedSchool { session, .. } = &inner.state else {
             bail!("Not in SelectedSchool when calling `get_captcha`. Session: {inner:#?}");
         };
 
-        Ok(session.get_captcha().clone())
+        Ok(session.get_captcha().cloned())
     }
 
     #[instrument(err)]
@@ -105,7 +105,7 @@ impl LoginProcess {
         &self,
         username: String,
         password: String,
-        captcha_answer: String,
+        captcha_answer: Option<String>,
     ) -> Result<String> {
         let mut inner = self.inner.lock().await;
         let LoginProcessState::SelectedSchool { school, session } = &inner.state else {

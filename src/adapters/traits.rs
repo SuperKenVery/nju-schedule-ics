@@ -56,24 +56,20 @@ impl<T> Credentials for T where T: Downcast + Send + Sync + DynClone {}
 
 /// A login session for the user to login.
 ///
-/// The typical workflow is:
-/// - **Start a login session.**
-///   You request the school's login page, get a cookie and captcha image.
-/// - **User submits username, password and captcha result.**
-///   To display the captcha to user, we need the first step.
-/// - **Finish login.**
-///   You request the school's login page to finish the login.
+/// A school may optionally require an image CAPTCHA. This challenge belongs to
+/// the school's authentication flow; site-level abuse protection is handled
+/// separately by the server.
 #[async_trait]
 pub trait LoginSession: Send + Sync + Debug {
-    /// Get the content of captcha image
-    fn get_captcha(&self) -> &DynamicImage;
+    /// Get the school CAPTCHA image, if this login flow requires one.
+    fn get_captcha(&self) -> Option<&DynamicImage>;
 
     /// Send the login request
     async fn login(
         &self,
         username: String,
         password: String,
-        captcha_answer: String,
+        captcha_answer: Option<String>,
     ) -> Result<Box<dyn Credentials>>;
 
     /// Get the session ID.

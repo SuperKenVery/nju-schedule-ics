@@ -3,14 +3,16 @@ use crate::gui::utils::to_blob_url;
 use super::super::app::Route;
 use super::super::utils::{ButtonWithLoading, Hero};
 use anyhow::Result;
+use dioxus::fullstack::HttpError;
 use dioxus::prelude::*;
 
 #[component]
 pub fn Login() -> Element {
     let img_src = use_resource(move || async move {
-        let image = get_captcha().await?;
-
-        to_blob_url(&image)
+        get_captcha()
+            .await?
+            .map(|image| to_blob_url(&image))
+            .transpose()
     });
 
     let username = use_signal(|| "".to_string());
@@ -27,29 +29,35 @@ pub fn Login() -> Element {
                 },
                 InputField { name: "账号", input_type: "text", place_holder: "", bind: username }
                 InputField { name: "密码", input_type: "password", place_holder: "", bind: password }
-                InputField {
-                    name: "验证码", input_type: "text", place_holder: "", bind: captcha_answer,
-
-                    match &*img_src.read_unchecked() {
-                        Some(Ok(url)) => rsx! {
+                match &*img_src.read_unchecked() {
+                    Some(Ok(Some(url))) => rsx! {
+                        InputField {
+                            name: "验证码", input_type: "text", place_holder: "", bind: captcha_answer,
                             img {
                                 class: "badge badge-neutral badge-xl p-0 px-0",
-                                src: url.to_string()
+                                src: url.to_string(),
                             }
-                        },
-                        Some(Err(e)) => rsx! {
-                            p { {format!("加载失败：{:?}", e)} }
-                        },
-                        None => rsx!{
-                            span { class: "loading loading-spinner" }
                         }
+                    },
+                    Some(Ok(None)) => rsx! {},
+                    Some(Err(e)) => rsx! {
+                        p { {format!("加载验证码失败：{:?}", e)} }
+                    },
+                    None => rsx!{
+                        span { class: "loading loading-spinner" }
                     }
                 }
                 ButtonWithLoading {
                     class: "btn btn-neutral mt-4",
                     type: "submit",
                     onclick: move |_event| async move {
-                        let _db_key = login_for_session(username(), password(), captcha_answer()).await?;
+                        let captcha_answer = img_src
+                            .read()
+                            .as_ref()
+                            .and_then(|result| result.as_ref().ok())
+                            .and_then(Option::as_ref)
+                            .map(|_| captcha_answer());
+                        let _db_key = login_for_session(username(), password(), captcha_answer).await?;
 
                         let nav = navigator();
                         nav.push(Route::ViewLink);
@@ -109,30 +117,44 @@ fn InputField(
 
 #[cfg(feature = "server")]
 use crate::adapters::login_process::LoginProcess;
+#[cfg(feature = "server")]
+use crate::server::login_rate_limit::LoginTokenBucket;
+#[cfg(feature = "server")]
+use dioxus::fullstack::StatusCode;
 
 #[get("/api/get_captcha", session: LoginProcess)]
 #[tracing::instrument(err, ret)]
-async fn get_captcha() -> Result<Vec<u8>> {
+async fn get_captcha() -> Result<Option<Vec<u8>>> {
     use std::io::Cursor;
 
-    let captcha = session.get_captcha().await?;
+    let Some(captcha) = session.get_captcha().await? else {
+        return Ok(None);
+    };
 
     // Convert to PNG
     let mut png_bytes = Vec::new();
     let mut cursor = Cursor::new(&mut png_bytes);
     captcha.write_to(&mut cursor, image::ImageFormat::Png)?;
 
-    Ok(png_bytes)
+    Ok(Some(png_bytes))
 }
 
-#[post("/api/login", session: LoginProcess)]
+#[post(
+    "/api/login",
+    session: LoginProcess,
+    token_bucket: LoginTokenBucket
+)]
 #[tracing::instrument(skip(password, captcha_answer), err)]
 async fn login_for_session(
     username: String,
     password: String,
-    captcha_answer: String,
-) -> Result<String> {
-    let cred_db_key = session.login(username, password, captcha_answer).await?;
+    captcha_answer: Option<String>,
+) -> std::result::Result<String, HttpError> {
+    token_bucket.try_take()?;
+    let cred_db_key = session
+        .login(username, password, captcha_answer)
+        .await
+        .map_err(|error| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
 
     Ok(cred_db_key)
 

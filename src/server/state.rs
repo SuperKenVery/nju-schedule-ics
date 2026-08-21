@@ -3,6 +3,7 @@ use crate::adapters::nju_undergrad::NJUUndergradAdaptor;
 use crate::adapters::traits::School;
 use crate::plugins::{PlugIn, get_plugins};
 use crate::server::config::Config;
+use crate::server::login_rate_limit::LoginTokenBucket;
 use anyhow::Result;
 use axum::extract::FromRef;
 use derivative::Derivative;
@@ -18,6 +19,7 @@ use tokio::sync::Mutex;
 #[derivative(Debug, Clone)]
 pub struct ServerState {
     pub site_url: String,
+    pub login_token_bucket: LoginTokenBucket,
     #[derivative(Debug = "ignore")]
     pub school_adapters: Arc<Mutex<HashMap<&'static str, Arc<dyn School>>>>,
     #[derivative(Debug = "ignore")]
@@ -26,6 +28,7 @@ pub struct ServerState {
 
 impl ServerState {
     pub async fn from_config(cfg: Config, db: SqlitePool) -> Result<Self> {
+        let login_token_bucket = LoginTokenBucket::new(&cfg.login_rate_limit)?;
         let mut school_adapters = HashMap::<&'static str, Arc<dyn School>>::new();
         let adb = Arc::new(Mutex::new(db.clone()));
         school_adapters.insert(
@@ -39,6 +42,7 @@ impl ServerState {
 
         Ok(Self {
             site_url: cfg.site_url,
+            login_token_bucket,
             school_adapters: Arc::new(Mutex::new(school_adapters)),
             plugins: Arc::new(get_plugins().await?),
         })

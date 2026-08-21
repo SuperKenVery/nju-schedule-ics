@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aes = "0.8.3"
 anyhow = { version = "1.0.75", features = ["backtrace", "std"] }
 base64 = "0.22.0"
-cbc = { version = "0.1.2", features = ["alloc", "std"] }
 chrono = "0.4.29"
 clap = { version = "4.4.2", features = ["derive"] }
 ics = "0.5.8"
@@ -31,7 +29,6 @@ serde_with = "3.14.0"
 dioxus = { git = "https://github.com/SuperKenVery/dioxus.git", branch = "nju-schedule", features = ["fullstack", "router"] }
 tracing = { version = "0.1.41", features = ["log", "async-await"] }
 daisy_rsx = "0.1.42"
-skyscraper = "0.6.4"
 web-sys = "0.3.81"
 js-sys = "0.3.81"
 dyn-clone = "1.0.20"
@@ -51,6 +48,7 @@ opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-clie
 tracing-opentelemetry = { version = "0.28", optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
 reqwest-tracing = "0.7.0"
+nju-unified-auth = { version = "0.1.0", optional = true }
 
 [features]
 default = []
@@ -58,7 +56,7 @@ web = ["dioxus/web"]
 server = [
     "dioxus/server", "dep:axum", "dep:tokio", "dep:uuid", "dep:sqlx", "dep:tower-http",
     "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp",
-    "dep:tracing-opentelemetry", "dep:tracing-subscriber",
+    "dep:tracing-opentelemetry", "dep:tracing-subscriber", "dep:nju-unified-auth",
 ]
 tower-http = ["dep:tower-http"]
 
