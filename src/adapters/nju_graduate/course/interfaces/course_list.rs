@@ -36,7 +36,7 @@ pub struct Row {
     /// 开课单位，比如`体育科学研究所`
     pub KKDW_DISPLAY: String,
     /// 首次上课日期，比如`2025-09-18`
-    pub SCSKRQ: Option<String>,
+    pub SCSKRQ: String,
     /// 课程ID，比如`081200B71`
     pub KCDM: String,
 }

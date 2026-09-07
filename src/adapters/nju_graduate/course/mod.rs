@@ -1,8 +1,8 @@
 use crate::adapters::nju_graduate::course::utils::group_by;
 use crate::adapters::{course::Course, nju_graduate::NJUGraduateAdapter, traits::CoursesProvider};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
-use chrono::{Duration, NaiveDateTime};
+use chrono::{Duration, NaiveDate, NaiveDateTime};
 use interfaces::all_semesters::Response as AllSemesters;
 use interfaces::course_list::{Response as CourseTableResponse, Row as CourseWithCampus};
 use interfaces::courses::{Response as CoursesResponse, Row as SplittedCourse};
@@ -14,15 +14,19 @@ use tracing::{Level, event, instrument};
 mod interfaces;
 mod utils;
 
-/// Get the current semester.
+/// Get the current semester id.
 ///
 /// It works by:
 /// 1. Fetch all semesters
 /// 2. Find the latest semester whose start date is not later than today + 14 days.
 ///
 /// This is because people want to see their schedule before the semester actually starts.
+///
+/// Note: the semester start date is only used to pick the current semester. Course times are
+/// computed from each course's first class date (SCSKRQ) instead, since the semester start
+/// date turns out to be unreliable.
 #[instrument(err)]
-async fn get_curr_semester(client: &ClientWithMiddleware) -> Result<(NaiveDateTime, String)> {
+async fn get_curr_semester(client: &ClientWithMiddleware) -> Result<String> {
     let all_semesters = AllSemesters::from_req(client).await?;
     let semesters = all_semesters.datas.kfdxnxqcx.rows;
 
@@ -44,6 +48,7 @@ async fn get_curr_semester(client: &ClientWithMiddleware) -> Result<(NaiveDateTi
         }) // Parse start time
         .filter(|(start_date, _)| *start_date <= cutoff) // Filter those before today+14d
         .max_by_key(|(start_date, _)| *start_date) // Take the latest one
+        .map(|(_, semester_id)| semester_id)
         .ok_or_else(|| anyhow::anyhow!("No valid semesters found"))
 }
 
@@ -123,29 +128,39 @@ async fn merge_courses(
 #[async_trait]
 impl CoursesProvider for NJUGraduateAdapter {
     async fn courses(&self, client: &ClientWithMiddleware) -> Result<Vec<Course>> {
-        let (semester_start, curr_semester_id) = get_curr_semester(client).await?;
+        let curr_semester_id = get_curr_semester(client).await?;
 
         let courses = CoursesResponse::from_req(client, &curr_semester_id).await?;
         let merged_courses = merge_courses(courses.datas.xspkjgcx.rows).await;
 
         let course_list = CourseTableResponse::from_req(client, &curr_semester_id).await?;
-        let courseid_to_campus = build_cid_to_campus_map(course_list.datas.xsjxrwcx.rows);
+        let (courseid_to_campus, courseid_to_first_date) =
+            build_cid_to_info_maps(course_list.datas.xsjxrwcx.rows)?;
 
         let courses = merged_courses
             .iter()
-            .map(|x| x.to_course(&courseid_to_campus, &semester_start.date()))
-            .collect();
+            .map(|x| x.to_course(&courseid_to_campus, &courseid_to_first_date))
+            .collect::<Result<Vec<Course>>>()?;
 
         Ok(courses)
     }
 }
 
-fn build_cid_to_campus_map(courses: Vec<CourseWithCampus>) -> HashMap<String, String> {
-    let mut result = HashMap::new();
+/// Build two maps from the course list (the table below the schedule page):
+/// 1. Course ID (KCDM) to campus display name.
+/// 2. Course ID (KCDM) to first class date (SCSKRQ).
+fn build_cid_to_info_maps(
+    courses: Vec<CourseWithCampus>,
+) -> Result<(HashMap<String, String>, HashMap<String, NaiveDate>)> {
+    let mut cid_to_campus = HashMap::new();
+    let mut cid_to_first_date = HashMap::new();
 
     for course in courses {
-        result.insert(course.KCDM, course.XQDM_DISPLAY);
+        let first_date = NaiveDate::parse_from_str(&course.SCSKRQ, "%Y-%m-%d")
+            .with_context(|| format!("Parsing first class date for course {}", course.BJMC))?;
+        cid_to_campus.insert(course.KCDM.clone(), course.XQDM_DISPLAY);
+        cid_to_first_date.insert(course.KCDM, first_date);
     }
 
-    result
+    Ok((cid_to_campus, cid_to_first_date))
 }

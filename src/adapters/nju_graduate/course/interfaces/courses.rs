@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
-use chrono::{Duration, FixedOffset, NaiveDate, NaiveTime, Utc};
+use chrono::{Datelike, Duration, FixedOffset, NaiveDate, NaiveTime, Utc};
 use derivative::Derivative;
 use map_macro::hash_map;
 use reqwest_middleware::ClientWithMiddleware;
@@ -91,11 +91,18 @@ impl Row {
     pub fn to_course(
         &self,
         courseid_to_campus: &HashMap<String, String>,
-        semester_start: &NaiveDate,
-    ) -> Course {
+        courseid_to_first_date: &HashMap<String, NaiveDate>,
+    ) -> Result<Course> {
+        let first_class_date = courseid_to_first_date.get(&self.KCDM).with_context(|| {
+            format!(
+                "Course {} ({}) not found in course list, no first class date (SCSKRQ)",
+                self.KCMC, self.KCDM
+            )
+        })?;
+
         let (start, end) = self.get_time();
         let times: Vec<_> = self
-            .get_dates(semester_start)
+            .get_dates(first_class_date)
             .iter()
             .map(|date| {
                 let offset = FixedOffset::east_opt(8 * 60 * 60).expect("UTF+8 offset out of bound");
@@ -112,7 +119,7 @@ impl Row {
             })
             .collect();
 
-        Course {
+        Ok(Course {
             name: self.KCMC.clone(),
             time: times,
             location: Some(self.JASMC.clone()),
@@ -128,7 +135,7 @@ impl Row {
                         .unwrap_or_else(|| "无备注".to_string())
                 ),
             ],
-        }
+        })
     }
 
     /// Get the start and end time of this course in [`NaiveTime`].
@@ -148,22 +155,38 @@ impl Row {
         (start_time, end_time)
     }
 
-    /// Given semester start, use [`self.ZCBH`] and [`self.XQ`] to get a list of dates
-    /// Semester always starts at Monday.
-    /// XQ is day of week (1-7, Monday-Sunday), so we convert to 0-6 for calculation
-    fn get_dates(&self, semester_start: &NaiveDate) -> Vec<NaiveDate> {
-        // XQ is day of week (1-7, Monday-Sunday)
+    /// Given the first class date (SCSKRQ), use [`self.ZCBH`] and [`self.XQ`] to get a list of dates.
+    ///
+    /// The first `1` in ZCBH marks the week containing the first class date; every other `1`
+    /// week is computed relative to it, so no (unreliable) semester start date is needed.
+    /// An all-zero bitmap (no class at all, e.g. free reading time) yields an empty list.
+    ///
+    /// The weekday of each date comes from XQ instead of the first class date itself, because
+    /// SCSKRQ is the date of the first meeting of the whole class, which may be on a different
+    /// weekday than this row for a twice-a-week course.
+    fn get_dates(&self, first_class_date: &NaiveDate) -> Vec<NaiveDate> {
+        // The week (0-based index in ZCBH) of the first class date
+        let Some(first_week) = self.ZCBH.chars().position(|c| c == '1') else {
+            return vec![];
+        };
+
+        // Monday of the week containing the first class date
+        let monday = *first_class_date
+            - Duration::days(first_class_date.weekday().num_days_from_monday() as i64);
+
+        // XQ is day of week (1-7, Monday-Sunday), so we convert to 0-6 for calculation
         let day_from_monday = self.XQ - 1;
 
-        // For each week in ZCBH (which is a bitmap string like "000111111111111118000000000000")
+        // For each week in ZCBH (which is a bitmap string like "000111111111111111000000000000")
         self.ZCBH
             .chars()
             .enumerate()
             .filter(|(_, char)| *char == '1')
             .map(|(week_index, _)| {
-                // Calculate the date for this week
-                let days_from_start = (week_index as i64) * 7 + (day_from_monday as i64);
-                *semester_start + Duration::days(days_from_start)
+                // Days from the Monday of the week containing the first class date
+                let days_from_first_class_monday =
+                    (week_index - first_week) as i64 * 7 + (day_from_monday as i64);
+                monday + Duration::days(days_from_first_class_monday)
             })
             .collect()
     }
