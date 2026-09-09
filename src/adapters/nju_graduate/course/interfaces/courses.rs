@@ -9,7 +9,7 @@ use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use tracing::instrument;
 
-use crate::adapters::course::Course;
+use crate::adapters::course::{Course, GeoLocation};
 
 #[derive(Deserialize, Debug)]
 pub struct Response {
@@ -123,7 +123,10 @@ impl Row {
             name: self.KCMC.clone(),
             time: times,
             location: Some(self.JASMC.clone()),
-            geo: None,
+            geo: match courseid_to_campus.get(&self.KCDM) {
+                Some(campus) => GeoLocation::from_name_and_campus(&self.JASMC, &campus),
+                None => None,
+            },
             campus: courseid_to_campus.get(&self.KCDM).cloned(),
             notes: vec![
                 format!("教师：{}", self.JSXM.clone()),
